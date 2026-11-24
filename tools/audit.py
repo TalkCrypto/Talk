@@ -38,6 +38,7 @@ def art(name):
 
 INBOX = art("TalkInbox")
 TOKEN = art("TalkToken")
+CURVE = art("TalkCurve")
 app_js = read(WEB / "app.js")
 landing_html = read(WEB / "index.html")
 app_html = read(WEB / "app.html")
@@ -185,6 +186,20 @@ check("withdraw" not in [f.lower() for f in fns], "the contract has no withdraw 
 check('nonReentrant' in read(ROOT / "contracts" / "TalkInbox.sol"), "uses a reentrancy guard")
 
 # ---------------------------------------------------------------- salida
+# ---------------------------------------------------------------- 7. curva
+curve_src = read(ROOT / "contracts" / "TalkCurve.sol")
+check(len(CURVE["bin"]) > 100, "TalkCurve has bytecode", f"{len(CURVE['bin'])//2} B")
+check("function withdraw" not in curve_src and "selfdestruct" not in curve_src,
+      "the curve has no withdraw and no selfdestruct")
+check("FEE_BPS = 100" in curve_src, "curve fee is 1%")
+check("priceEnd_ < priceStart_" in curve_src, "the curve rejects an inverted price range")
+check("nonReentrant" in curve_src, "the curve is reentrancy-guarded")
+curve_fns = {fn["name"] for fn in CURVE["abi"] if fn.get("type") == "function"}
+need = {"buy", "sell", "quoteBuy", "quoteSell", "priceAt", "cost", "tokensFor", "sold", "supply"}
+check(need <= curve_fns, "the curve exposes the expected surface", ", ".join(sorted(need - curve_fns)) or "ok")
+check((ROOT / "docs" / "curve.md").exists(), "curve spec is documented")
+check((ROOT / "tools" / "test-curve.py").exists(), "curve test suite exists")
+
 print("TALK AUDIT\n" + "=" * 66)
 ok = 0
 for passed, label, detail in results:
@@ -194,4 +209,5 @@ for passed, label, detail in results:
 print("=" * 66)
 print(f"{ok}/{len(results)} checks OK")
 sys.exit(0 if ok == len(results) else 1)
+
 

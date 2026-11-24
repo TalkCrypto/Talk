@@ -140,7 +140,8 @@ const els = {};
  "wzDots","wzLbl","wzOpen","wzOpenHint","wzRule","wzPrice","wzPriceVal","wzPresets","wzSim",
  "wzBack","wzNext","convs","msgs","threadTitle","threadMeta","peerAv","composer","text","priceTag",
  "btnSend","threadActions","composerHint","log",
- "meAv","meName","meSub","btnInbox","btnInbox2","btnCloseInbox","inboxModal","search","newTo","footMeta"]
+ "meAv","meName","meSub","btnInbox","btnInbox2","btnCloseInbox","inboxModal","search","newTo","footMeta",
+ "btnRename","renameRow","renameInput","renameSave","renameClear"]
   .forEach(k => els[k] = $(k));
 
 function log(msg, kind = "") {
@@ -560,6 +561,23 @@ function renderBox() {
   }
 }
 
+/* ---- alias local por contacto: unos con nombre, otros con dirección ---- */
+const aliasKey = a => "talk:alias:" + String(a).toLowerCase();
+
+function aliasOf(a) {
+  try { return localStorage.getItem(aliasKey(a)) || short(a); } catch (_) { return short(a); }
+}
+
+function setAlias(a, name) {
+  try {
+    const clean = String(name || "").trim().slice(0, 24);
+    if (clean) localStorage.setItem(aliasKey(a), clean);
+    else localStorage.removeItem(aliasKey(a));
+  } catch (_) {}
+  renderConvs();
+  renderThread();
+}
+
 function renderConvs() {
   if (!els.convs) return;
   const q = (S.filter || "").toLowerCase();
@@ -586,7 +604,7 @@ function renderConvs() {
       <div class="avatar sm">${c.address.slice(2, 4).toUpperCase()}</div>
       <div class="min">
         <div class="row-top">
-          <span class="row-name">${short(c.address)}</span>
+          <span class="row-name" title="${c.address}">${esc(aliasOf(c.address))}</span>
           <span class="row-time">${ts ? hhmm(ts) : ""}</span>
         </div>
         <div class="row-sub">
@@ -645,13 +663,17 @@ function renderThread() {
   const isContact = S.contacts.has(S.active.toLowerCase());
 
   if (els.peerAv) els.peerAv.textContent = S.active.slice(2, 4).toUpperCase();
-  if (els.threadTitle) els.threadTitle.textContent = short(S.active);
+  if (els.threadTitle) {
+    els.threadTitle.textContent = aliasOf(S.active);
+    els.threadTitle.title = S.active;
+  }
   if (els.threadMeta) {
-    els.threadMeta.textContent = !peer || !peer.registered
+    const named = !!localStorage.getItem(aliasKey(S.active));
+    els.threadMeta.textContent = (named ? short(S.active) + " · " : "") + (!peer || !peer.registered
       ? "no inbox yet"
       : isContact ? "contact — free to write"
       : peer.open ? "open inbox"
-      : fmt(peer.price) + " per message";
+      : fmt(peer.price) + " per message");
   }
 
   if (!S.msgs.length) {
@@ -1116,6 +1138,36 @@ function initShell() {
   els.search?.addEventListener("input", e => {
     S.filter = e.target.value;
     renderConvs();
+  });
+
+  els.btnRename?.addEventListener("click", () => {
+    if (!S.active) return;
+    if (els.renameRow.hidden) {
+      els.renameRow.hidden = false;
+      const cur = (() => { try { return localStorage.getItem(aliasKey(S.active)) || ""; } catch (_) { return ""; } })();
+      els.renameInput.value = cur;
+      els.renameInput.focus();
+      els.renameInput.select();
+    } else {
+      els.renameRow.hidden = true;
+    }
+  });
+
+  els.renameSave?.addEventListener("click", () => {
+    if (!S.active) return;
+    setAlias(S.active, els.renameInput.value);
+    els.renameRow.hidden = true;
+  });
+
+  els.renameClear?.addEventListener("click", () => {
+    if (!S.active) return;
+    setAlias(S.active, "");
+    els.renameRow.hidden = true;
+  });
+
+  els.renameInput?.addEventListener("keydown", e => {
+    if (e.key === "Enter") { e.preventDefault(); els.renameSave.click(); }
+    if (e.key === "Escape") { els.renameRow.hidden = true; }
   });
 
   els.newTo?.addEventListener("keydown", e => {

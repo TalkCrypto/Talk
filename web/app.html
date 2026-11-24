@@ -71,11 +71,20 @@
           <div class="chat-sub" id="threadMeta">pick someone to write to</div>
         </div>
         <div class="grow"></div>
+        <button class="icon-btn" id="btnRename" aria-label="Rename contact" title="Rename contact">
+          <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M3 17.2V21h3.8L17.9 9.9l-3.8-3.8L3 17.2zM20.7 7.1a1 1 0 0 0 0-1.4l-2.4-2.4a1 1 0 0 0-1.4 0l-1.8 1.8 3.8 3.8 1.8-1.8z"/></svg>
+        </button>
         <span class="pill-e2e" title="End-to-end encrypted">
           <svg viewBox="0 0 24 24" width="10" height="10"><path fill="currentColor" d="M12 1a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-1V6a5 5 0 0 0-5-5zm0 2a3 3 0 0 1 3 3v3H9V6a3 3 0 0 1 3-3z"/></svg>
           encrypted
         </span>
       </header>
+
+      <div class="rename-row" id="renameRow" hidden>
+        <input id="renameInput" placeholder="Name this contact" maxlength="24" autocomplete="off">
+        <button id="renameSave" class="sm solid">Save</button>
+        <button id="renameClear" class="sm">Clear</button>
+      </div>
 
       <div id="msgs" class="msgs">
         <div class="empty-chat">

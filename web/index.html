@@ -3,250 +3,340 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#000000">
-<title>Talk — say it privately</title>
-<meta name="description" content="Messaging for wallets. Set a price, get paid to reply, and nobody reads what you write.">
+<meta name="theme-color" content="#0a0a0b">
+<title>Talk — private messaging for wallets</title>
+<meta name="description" content="Talk is messaging for wallets: set a price, get paid to reply, and nobody reads what you write.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..700;1,400..600&family=Manrope:wght@300..700&family=JetBrains+Mono:wght@300..600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="landing.css">
 </head>
 <body>
 
-<canvas id="field"></canvas>
-<div class="vignette"></div>
-<div class="grain"></div>
-<div class="cursor-dot"></div>
-<div class="cursor-ring"></div>
-
-<!-- ---------------------------------------------------------------- HUD -->
-<nav class="hud-top">
-  <div class="hud-left">
-    <span class="dot"></span>
-    <a href="index.html" class="hud-brand">TALK <span>· MESSAGING</span></a>
+<header class="site-head">
+  <div class="site-head-in">
+    <a class="logo" href="index.html"><b>Talk</b><span>Messaging</span></a>
+    <nav class="site-nav">
+      <a href="#product">Product</a>
+      <a href="#tokenomics">Token</a>
+      <a href="#policy">Policy</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <div class="head-right">
+      <div class="head-socials" id="headSocials"></div>
+      <a class="btn btn-solid btn-sm" href="app.html">Open app</a>
+    </div>
   </div>
-
-  <div class="hud-nav">
-    <a href="#product">PRODUCT</a>
-    <a href="#tokenomics">TOKEN</a>
-    <a href="#policy">POLICY</a>
-    <a href="#faq">FAQ</a>
-  </div>
-
-  <div class="hud-right">
-    <div class="hud-socials" id="hudSocials"></div>
-    <a class="hud-cta" href="app.html">OPEN APP ↗</a>
-  </div>
-</nav>
+</header>
 
 <main>
 
-  <!-- ------------------------------------------------------------- hero -->
+  <!-- ------------------------------------------------------------------ hero -->
   <section class="hero">
     <div class="hero-in">
-      <div class="kicker">PRIVATE MESSAGING · PAID IN $TALK · LIVE</div>
-      <h1>Say it<br><em>privately</em>.</h1>
-      <p class="lead">
-        There is a machine for talking to wallets where a message costs something to send
-        and nothing to answer. It runs on chain, it holds no keys, and it reads nothing.
-      </p>
-
-      <div class="hero-stats">
-        <span><b>0</b> accounts</span>
-        <span><b>5%</b> fee</span>
-        <span><b>72h</b> escrow</span>
-        <span><b>$TALK</b> only</span>
-      </div>
-
-      <div class="hero-ctas">
-        <a class="cta" href="app.html">LAUNCH APP ↗</a>
-        <a class="cta-ghost" href="#product">HOW IT WORKS ↓</a>
-      </div>
-    </div>
-
-    <div class="hero-word" aria-hidden="true">TALK</div>
-    <div class="scroll-hint"><span>SCROLL</span><i></i></div>
-  </section>
-
-  <!-- ------------------------------------------------------------ strap -->
-  <div class="strap">
-    <div class="strap-in">
-      <span>PRIVATE MESSAGING</span><i>/</i>
-      <span>PAID IN $TALK</span><i>/</i>
-      <span>ENCRYPTED IN YOUR BROWSER</span><i>/</i>
-      <span>NO ACCOUNTS</span><i>/</i>
-      <span>NO SPAM</span><i>/</i>
-      <span>72H ESCROW</span><i>/</i>
-      <span>NO WITHDRAW</span><i>/</i>
-      <span>PRIVATE MESSAGING</span><i>/</i>
-      <span>PAID IN $TALK</span><i>/</i>
-      <span>ENCRYPTED IN YOUR BROWSER</span><i>/</i>
-    </div>
-  </div>
-
-  <!-- --------------------------------------------------- 01 the product -->
-  <section class="band" id="product">
-    <div class="band-in">
-      <div class="sec-head reveal">
-        <div class="kicker">01 / THE PRODUCT</div>
-        <h2>A quieter inbox.</h2>
-        <p class="sec-sub">
-          An inbox that costs something to enter. Not to punish anyone — to make the message matter.
+      <div class="hero-copy">
+        <div class="eyebrow"><i></i> Live on Robinhood Chain</div>
+        <h1>Make a message<br>worth <span class="accent">answering.</span></h1>
+        <p class="hero-sub">
+          Talk is messaging for wallets. A stranger pays to reach you, you answer when you want,
+          and everything is sealed on your device before it leaves.
         </p>
+        <div class="hero-ctas">
+          <a class="btn btn-solid" href="app.html">Open your inbox</a>
+          <a class="btn btn-ghost" href="#product">See how it works</a>
+        </div>
+        <div class="hero-facts">
+          <div class="fact"><b>0</b><span>accounts to create</span></div>
+          <div class="fact"><b>5%</b><span>fee on what you keep</span></div>
+          <div class="fact"><b>72h</b><span>before it returns</span></div>
+          <div class="fact"><b>$TALK</b><span>the only currency</span></div>
+        </div>
       </div>
 
-      <!-- ventana del producto -->
-      <div class="frame reveal">
-        <div class="frame-bar">
-          <span class="fdot"></span><span class="fdot"></span><span class="fdot"></span>
-          <span class="furl">talk — inbox</span>
-          <span class="fstat"><i></i> encrypted</span>
+      <div class="app-mock">
+        <div class="mock-bar">
+          <span class="mdot"></span><span class="mdot"></span><span class="mdot"></span>
+          <span class="murl">talk.app / inbox</span>
+          <span class="mstat"><i></i> encrypted</span>
         </div>
 
-        <div class="frame-body">
-          <aside class="mini-side">
-            <div class="mini-me">
-              <span class="mav">9F</span>
-              <div><b>0x9f3c…4c6d</b><i>120 TALK per message</i></div>
+        <div class="mock-body">
+          <aside class="mock-side">
+            <div class="mock-me">
+              <span class="cav a1">Y</span>
+              <div class="who"><b>Your inbox</b><span>0x9f3c…4c6d</span></div>
+              <span class="mock-gear">⚙</span>
             </div>
-            <div class="mini-row on">
-              <span class="mav">4A</span>
-              <div><b>0x4a1e…7a9c</b><i>Sent. Ping me if anything looks off.</i></div>
-              <span class="mt">4:21</span>
-            </div>
-            <div class="mini-row">
-              <span class="mav">8B</span>
-              <div><b>0x8b2d…f6a8</b><i>Thanks — got it.</i></div>
-              <span class="mt">18:12</span>
-            </div>
-            <div class="mini-row">
-              <span class="mav">C2</span>
-              <div><b>0xc2aa…19e0</b><i>Encrypted message</i></div>
-              <span class="mt">Mon</span>
-            </div>
+            <div class="mock-search">Search</div>
+
+            <button class="row on">
+              <span class="cav a2">P</span>
+              <div class="rmid"><b>Pons team</b><span>Sent. Ping me if anything looks off.</span></div>
+              <div class="rside"><span class="rt">4:21</span><span class="unread">2</span></div>
+            </button>
+            <button class="row">
+              <span class="cav a3">M</span>
+              <div class="rmid"><b>María C.</b><span>Thanks — got it.</span></div>
+              <div class="rside"><span class="rt">18:12</span></div>
+            </button>
+            <button class="row">
+              <span class="cav a4">8B</span>
+              <div class="rmid"><b class="addr-name">0x8b2d…f6a8</b><span>Waiting on a reply</span></div>
+              <div class="rside"><span class="rt">Mon</span></div>
+            </button>
           </aside>
 
-          <div class="mini-chat">
-            <div class="mini-top">
-              <span class="mav sm">4A</span>
-              <div><b>0x4a1e…7a9c</b><i>100 TALK per message</i></div>
-              <span class="mini-lock">encrypted</span>
+          <div class="mock-chat">
+            <header class="mock-head">
+              <span class="cav a2 sm">P</span>
+              <div class="who"><b>Pons team</b><span class="pres"><i></i>online</span></div>
+              <div class="mock-actions"><span>⌕</span><span>⋯</span></div>
+            </header>
+
+            <div class="mock-thread">
+              <div class="sep">Today</div>
+
+              <div class="grp in">
+                <span class="cav a2 sm">P</span>
+                <div class="bubbles">
+                  <div class="b">Hey — saw your token on pons. Still holding a slot for you.<time>4:12 PM</time></div>
+                  <div class="b">Contract's ready whenever you are.<time>4:13 PM</time></div>
+                </div>
+              </div>
+
+              <div class="grp out">
+                <div class="bubbles">
+                  <div class="b">Perfect. Send it over and I'll read it tonight.<time>4:20 PM ✓✓</time></div>
+                </div>
+              </div>
+
+              <div class="grp in">
+                <span class="cav a2 sm">P</span>
+                <div class="bubbles">
+                  <div class="b">Sent. Ping me if anything looks off.<time>4:21 PM</time></div>
+                </div>
+              </div>
+
+              <div class="pay">100 TALK · in escrow</div>
             </div>
 
-            <div class="mini-msgs">
-              <div class="mm-day">TODAY</div>
-              <div class="mm in">Hey — saw your token on pons. Still holding a slot for you.<span>4:12</span></div>
-              <div class="mm out">Perfect. Send the contract over and I'll read it tonight.<span>4:20</span></div>
-              <div class="mm in">Sent. Ping me if anything looks off.<span>4:21</span></div>
-              <div class="mm chip">100 TALK · in escrow</div>
+            <div class="mock-compose">
+              <span class="cbtn">+</span>
+              <div class="cfield">Message</div>
+              <span class="cbtn send">➤</span>
             </div>
-
-            <div class="mini-input">
-              <span>Message</span>
-              <i>↗</i>
-            </div>
+            <div class="mock-note">Replies are free. The payment settles when you answer.</div>
           </div>
         </div>
       </div>
-
-      <p class="frame-note reveal">The dashboard: your inbox, the price, and what's waiting on your answer.</p>
-      <div class="caps">
-        <article class="cap reveal">
-          <span class="cap-n">01</span>
-          <h3>Open your inbox</h3>
-          <p>One free signature. No forms, no email, no password — your wallet is the account.</p>
-        </article>
-        <article class="cap reveal">
-          <span class="cap-n">02</span>
-          <h3>Set your price</h3>
-          <p>Strangers pay to reach you. The people you already replied to never pay again.</p>
-        </article>
-        <article class="cap reveal">
-          <span class="cap-n">03</span>
-          <h3>Answer, and it settles</h3>
-          <p>Reply and keep the payment. Stay silent and it goes back — you never hold their money.</p>
-        </article>
-        <article class="cap reveal">
-          <span class="cap-n">04</span>
-          <h3>Sealed on your device</h3>
-          <p>Messages are encrypted before they leave. The chain stores bytes it cannot read.</p>
-        </article>
-      </div>
     </div>
   </section>
 
-  <!-- ------------------------------------------------------- interlude -->
-  <div class="interlude">
-    <div class="drift">
-      <div class="frag-pos" data-dp="0.05" style="left:44%;top:38%"><span class="frag verb" style="font-size:38px">pays</span></div>
-      <div class="frag-pos" data-dp="0.9" style="left:12%;top:24%"><span class="frag" style="font-size:46px">72 hours</span></div>
-      <div class="frag-pos" data-dp="0.62" style="left:70%;top:20%"><span class="frag t-r">escrow</span></div>
-      <div class="frag-pos" data-dp="0.35" style="left:24%;top:68%"><span class="frag t-w">no withdraw function</span></div>
-      <div class="frag-pos" data-dp="0.78" style="left:62%;top:72%"><span class="frag" style="font-size:32px">5%</span></div>
-      <div class="frag-pos" data-dp="0.5" style="left:8%;top:46%"><span class="frag t-w">signature · free</span></div>
-      <div class="frag-pos" data-dp="0.2" style="left:82%;top:52%"><span class="frag t-w">contacts · free forever</span></div>
+  <!-- ---------------------------------------------------------------- ticker -->
+  <div class="ticker">
+    <div class="ticker-in">
+      <span><b>PRIVATE MESSAGING</b></span><em>—</em>
+      <span>paid in $TALK</span><em>—</em>
+      <span><b>72h escrow</b></span><em>—</em>
+      <span>no accounts</span><em>—</em>
+      <span><b>encrypted in your browser</b></span><em>—</em>
+      <span>no withdraw function</span><em>—</em>
+      <span><b>contacts write free</b></span><em>—</em>
+      <span>private messaging</span><em>—</em>
+      <span><b>paid in $TALK</b></span><em>—</em>
+      <span>72h escrow</span><em>—</em>
     </div>
   </div>
 
-  <!-- ------------------------------------------------------ 02 tokenomics -->
+  <!-- --------------------------------------------------------------- product -->
+  <section class="band" id="product">
+    <div class="band-in">
+      <div class="tag rv"><b>01</b><span>Product</span><hr></div>
+      <h2 class="rv">An inbox with a price,<br>and a reason to answer.</h2>
+      <p class="lede rv">
+        Most inboxes are free, which is why nobody reads them. Talk puts a price on reaching a
+        stranger and makes the payment wait until you reply. The people you talk to never pay again.
+      </p>
+
+      <div class="grid-4">
+        <article class="cell rv">
+          <div class="n">01</div>
+          <h3>Open in one signature</h3>
+          <p>No forms, no email, no password. Your wallet is the account, and activating it is free.</p>
+        </article>
+        <article class="cell rv">
+          <div class="n">02</div>
+          <h3>You set the price</h3>
+          <p>Pick a number in $TALK. Strangers pay it; contacts you've replied to write for free, always.</p>
+        </article>
+        <article class="cell rv">
+          <div class="n">03</div>
+          <h3>Answer, and it settles</h3>
+          <p>Reply and keep the payment. Stay silent and after 72 hours it goes back. You never hold their money.</p>
+        </article>
+        <article class="cell rv">
+          <div class="n">04</div>
+          <h3>Sealed before it leaves</h3>
+          <p>Messages are encrypted on your device. The chain stores bytes it cannot open — and neither can we.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ------------------------------------------------------- product on paper -->
+  <section class="band paper">
+    <div class="band-in">
+      <div class="tag rv"><b>02</b><span>The conversation</span><hr></div>
+      <h2 class="rv">The thread keeps<br>everything in one place.</h2>
+      <p class="lede rv">
+        Messages, timestamps and payment state live together. You never have to guess whether they
+        replied or what's still owed — the thread tells you.
+      </p>
+
+      <div class="app-mock paper rv">
+        <div class="mock-bar">
+          <span class="mdot"></span><span class="mdot"></span><span class="mdot"></span>
+          <span class="murl">talk.app / inbox</span>
+          <span class="mstat"><i></i> connected</span>
+        </div>
+
+        <div class="mock-body">
+          <aside class="mock-side">
+            <div class="mock-me">
+              <span class="cav a1">Y</span>
+              <div class="who"><b>Your inbox</b><span>0x9f3c…4c6d</span></div>
+              <span class="mock-gear">⚙</span>
+            </div>
+            <div class="mock-search">Search</div>
+
+            <button class="row on">
+              <span class="cav a2">P</span>
+              <div class="rmid"><b>Pons team</b><span>Sent. Ping me if anything looks off.</span></div>
+              <div class="rside"><span class="rt">4:21</span><span class="unread">2</span></div>
+            </button>
+            <button class="row">
+              <span class="cav a3">M</span>
+              <div class="rmid"><b>María C.</b><span>Thanks — got it.</span></div>
+              <div class="rside"><span class="rt">18:12</span></div>
+            </button>
+            <button class="row">
+              <span class="cav a4">8B</span>
+              <div class="rmid"><b class="addr-name">0x8b2d…f6a8</b><span>Waiting on a reply</span></div>
+              <div class="rside"><span class="rt">Mon</span></div>
+            </button>
+          </aside>
+
+          <div class="mock-chat">
+            <header class="mock-head">
+              <span class="cav a2 sm">P</span>
+              <div class="who"><b>Pons team</b><span class="pres"><i></i>online</span></div>
+              <div class="mock-actions"><span>⌕</span><span>⋯</span></div>
+            </header>
+
+            <div class="mock-thread">
+              <div class="sep">Today</div>
+
+              <div class="grp in">
+                <span class="cav a2 sm">P</span>
+                <div class="bubbles">
+                  <div class="b">Hey — saw your token on pons. Still holding a slot for you.<time>4:12 PM</time></div>
+                  <div class="b">Contract's ready whenever you are.<time>4:13 PM</time></div>
+                </div>
+              </div>
+
+              <div class="grp out">
+                <div class="bubbles">
+                  <div class="b">Perfect. Send it over and I'll read it tonight.<time>4:20 PM ✓✓</time></div>
+                </div>
+              </div>
+
+              <div class="grp in">
+                <span class="cav a2 sm">P</span>
+                <div class="bubbles">
+                  <div class="b">Sent. Ping me if anything looks off.<time>4:21 PM</time></div>
+                </div>
+              </div>
+
+              <div class="pay">100 TALK · settled</div>
+            </div>
+
+            <div class="mock-compose">
+              <span class="cbtn">+</span>
+              <div class="cfield">Message</div>
+              <span class="cbtn send">➤</span>
+            </div>
+            <div class="mock-note">You're contacts now — this conversation is free.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ------------------------------------------------------------ tokenomics -->
   <section class="band" id="tokenomics">
     <div class="band-in">
-      <div class="sec-head reveal">
-        <div class="kicker">02 / TOKENOMICS</div>
-        <h2>One token. No games.</h2>
-      </div>
-
-      <div class="tok-grid">
-        <div class="tok reveal"><span class="tok-k">MAX SUPPLY</span><span class="tok-v">1,000,000,000</span><span class="tok-s">fixed at deploy, no mint</span></div>
-        <div class="tok reveal"><span class="tok-k">TALK FEE</span><span class="tok-v">5%</span><span class="tok-s">of what you keep</span></div>
-        <div class="tok reveal"><span class="tok-k">ESCROW</span><span class="tok-v">72 H</span><span class="tok-s">then anyone can refund</span></div>
-        <div class="tok reveal"><span class="tok-k">ACCEPTED</span><span class="tok-v">$TALK</span><span class="tok-s">one token, nothing else</span></div>
-      </div>
-
-      <p class="sec-sub note reveal">
-        The fee only touches what the recipient keeps. Refunds pay nothing, and once you've replied
-        you're contacts — those messages are free forever.
+      <div class="tag rv"><b>03</b><span>Token</span><hr></div>
+      <h2 class="rv">One token, printed once.</h2>
+      <p class="lede rv">
+        No mint, no rebase, no treasury games. The supply is fixed when the contract is deployed and
+        the fee is written into the code.
       </p>
+
+      <dl class="stats-table rv">
+        <div class="stats-row"><dt>Max supply</dt><dd>1,000,000,000 <small>fixed at deploy</small></dd></div>
+        <div class="stats-row"><dt>Talk fee</dt><dd>5% <small>of what the recipient keeps</small></dd></div>
+        <div class="stats-row"><dt>Escrow window</dt><dd>72 hours <small>then anyone can refund</small></dd></div>
+        <div class="stats-row"><dt>Accepted currency</dt><dd>$TALK <small>one token, nothing else</small></dd></div>
+        <div class="stats-row"><dt>Withdraw function</dt><dd>None <small>the contract can't be drained</small></dd></div>
+      </dl>
     </div>
   </section>
 
-  <!-- ---------------------------------------------------------- 03 policy -->
+  <!-- ---------------------------------------------------------------- policy -->
   <section class="band" id="policy">
     <div class="band-in">
-      <div class="sec-head reveal">
-        <div class="kicker">03 / THE POLICY</div>
-        <h2>What you're getting.</h2>
-      </div>
+      <div class="tag rv"><b>04</b><span>Policy</span><hr></div>
+      <h2 class="rv">What you get, in writing.</h2>
 
-      <div class="trust">
-        <div class="tr reveal"><h4>PRIVACY</h4><p>No sign-up, no email, no telemetry. Keys stay on your device and there is no data to sell.</p></div>
-        <div class="tr reveal"><h4>CUSTODY</h4><p>Your money never sits in our wallets. The contract holds it and releases it by rule, with no withdraw function.</p></div>
-        <div class="tr reveal"><h4>RESPECT</h4><p>No spam, because reaching you costs something. No surprises, because the fee ships with the code.</p></div>
-        <div class="tr reveal"><h4>OPEN</h4><p>The source is private until launch. Once launched, it's revealed in full — repository and contracts, verifiable by anyone.</p></div>
+      <div class="policy-grid">
+        <div class="pol rv">
+          <h4>Privacy by default</h4>
+          <p>No sign-up, no email, no telemetry. Keys stay on your device and there is no data to sell — there's no account to attach it to.</p>
+        </div>
+        <div class="pol rv">
+          <h4>Your money is never ours</h4>
+          <p>Payments sit in the contract, not in a wallet of ours. It has no withdraw function, so the only funds that move are the ones the escrow allows.</p>
+        </div>
+        <div class="pol rv">
+          <h4>No spam, by design</h4>
+          <p>Reaching a stranger costs something, which is the whole filter. Once you've answered, they're a contact and the toll disappears.</p>
+        </div>
+        <div class="pol rv">
+          <h4>Open at launch</h4>
+          <p>The source is private until launch. Once it ships, the repository and the contracts are public and verifiable by anyone.</p>
+        </div>
       </div>
     </div>
   </section>
 
-  <!-- ------------------------------------------------------------- 04 faq -->
+  <!-- ------------------------------------------------------------------- faq -->
   <section class="band" id="faq">
     <div class="band-in">
-      <div class="sec-head reveal">
-        <div class="kicker">04 / FAQ</div>
-        <h2>Questions.</h2>
-      </div>
+      <div class="tag rv"><b>05</b><span>FAQ</span><hr></div>
+      <h2 class="rv">Questions people ask.</h2>
 
-      <div class="faq reveal">
+      <div class="faq rv">
         <details>
           <summary>Do I need to deposit anything to open an inbox?</summary>
-          <p>No. Opening an inbox is a free signature — not a transaction. You only spend gas when you send or reply.</p>
+          <p>No. Opening an inbox is a free signature, not a transaction. You only spend gas when you send or reply.</p>
         </details>
         <details>
-          <summary>Who holds the money while it's waiting?</summary>
-          <p>The contract, not us. It has no withdraw function, so the only funds that move are the ones the escrow dictates.</p>
+          <summary>Who holds the money while it waits?</summary>
+          <p>The contract. It has no withdraw function, so the only funds that can move are the ones the escrow rules allow.</p>
         </details>
         <details>
           <summary>What happens if I never answer?</summary>
-          <p>After 72 hours the sender gets it back. Anyone can trigger the refund — you don't have to be online and we can't block it.</p>
+          <p>After 72 hours the sender can take it back, and anyone can trigger that refund. You don't have to be online, and we can't block it.</p>
         </details>
         <details>
           <summary>Can you read my messages?</summary>
@@ -254,29 +344,33 @@
         </details>
         <details>
           <summary>Is the token live?</summary>
-          <p>Not yet. There's no sale, no presale and no contract address published. When that changes it's announced here.</p>
+          <p>Not yet. There is no sale, no presale and no published contract address. When that changes, it's announced here.</p>
         </details>
       </div>
     </div>
   </section>
 
-  <!-- ------------------------------------------------------------ close -->
+  <!-- ----------------------------------------------------------------- close -->
   <section class="close">
     <div class="close-in">
-      <div class="kicker reveal">05 / OPEN</div>
-      <h2 class="reveal">Ready when<br>you are.</h2>
-      <p class="reveal">Open your inbox in about ten seconds.</p>
-      <a class="cta reveal" href="app.html">LAUNCH APP ↗</a>
+      <div class="tag rv" style="justify-content:center"><b>06</b><span>Start</span></div>
+      <h2 class="rv">Open your inbox in about ten seconds.</h2>
+      <p class="rv">One signature. No forms. Nothing to install.</p>
+      <div class="hero-ctas rv">
+        <a class="btn btn-solid" href="app.html">Open Talk</a>
+        <a class="btn btn-ghost" href="deploy.html">Deploy your own</a>
+      </div>
     </div>
-    <div class="hero-word small" aria-hidden="true">TALK</div>
   </section>
 
 </main>
 
 <footer class="site-foot">
-  <a href="index.html" class="foot-brand">TALK · MESSAGING</a>
-  <div class="foot-socials" id="footSocials"></div>
-  <span class="foot-note">Encrypted in your browser · paid in $TALK</span>
+  <div class="site-foot-in">
+    <a class="logo" href="index.html"><b>Talk</b><span>Messaging</span></a>
+    <span>Encrypted in your browser · paid in $TALK</span>
+    <div class="foot-socials foot-right" id="footSocials"></div>
+  </div>
 </footer>
 
 <script src="config.js"></script>

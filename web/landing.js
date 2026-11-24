@@ -104,7 +104,7 @@
   }
 
   /* ---------------------------------------------------------- reveal */
-  const items = document.querySelectorAll(".reveal");
+  const items = document.querySelectorAll(".rv");
   if ("IntersectionObserver" in window && !reduce) {
     const io = new IntersectionObserver(entries => {
       entries.forEach((en, i) => {
