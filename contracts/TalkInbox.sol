@@ -49,6 +49,7 @@ contract TalkInbox {
     uint256 public constant MAX_CIPHERTEXT = 4096;
 
     uint256 public nextId = 1;
+    uint256 public messageCount;   // monotonic message id, independent of payments
 
     mapping(address => Inbox) public inboxes;
     mapping(uint256 => Payment) public payments;
@@ -123,7 +124,7 @@ contract TalkInbox {
         uint256 price = quote(msg.sender, to);
 
         if (price == 0) {
-            emit Message(nextId, msg.sender, to, 0, ciphertext);
+            emit Message(++messageCount, msg.sender, to, 0, ciphertext);
             return 0;
         }
 
@@ -137,7 +138,7 @@ contract TalkInbox {
             status: Status.Pending
         });
 
-        emit Message(paymentId, msg.sender, to, paymentId, ciphertext);
+        emit Message(++messageCount, msg.sender, to, paymentId, ciphertext);
         emit MessagePaid(paymentId, msg.sender, to, price, uint64(block.timestamp + TTL));
     }
 
@@ -164,7 +165,7 @@ contract TalkInbox {
         isContact[msg.sender][p.from] = true;
         isContact[p.from][msg.sender] = true;
 
-        emit Message(paymentId, msg.sender, p.from, paymentId, ciphertext);
+        emit Message(++messageCount, msg.sender, p.from, paymentId, ciphertext);
         emit Settled(paymentId, toRecipient, fee);
     }
 
