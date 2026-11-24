@@ -67,10 +67,10 @@ globalThis.__t = (async () => {
   ok("send: length = 58", words(call.slice(10))[2] === u256(58));
 
   // --- ABI: configure
-  const cfg = SEL.configure + u256(0) + u256(1) + asAddr("0x" + "11".repeat(32)) + u256(100n * 10n**18n);
-  ok("configure selector", cfg.startsWith("0xc9119f4b"));
-  ok("configure: 4 words", words(cfg.slice(10)).length === 4);
-  ok("configure: price 100", wBig(words(cfg.slice(10))[3]) === 100n * 10n**18n);
+  const cfg = SEL.configure + u256(0) + asAddr("0x" + "11".repeat(32)) + u256(100n * 10n**18n);
+  ok("configure selector", cfg.startsWith("0xb717a262"));
+  ok("configure: 3 words", words(cfg.slice(10)).length === 3);
+  ok("configure: price 100", wBig(words(cfg.slice(10))[2]) === 100n * 10n**18n);
 
   // --- ABI: reply
   const rep = SEL.reply + u256(7) + u256(64) + dynBytes(ct);

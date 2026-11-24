@@ -34,20 +34,20 @@ const UNIT = 10n ** BigInt(DECIMALS);
 const SEL = {
   inboxes: "0x5cdd067d", payments: "0x87d81789", quote: "0x4a5aa711",
   isContact: "0x77e600fd", send: "0xc89acc86", reply: "0xb21faa4a",
-  refund: "0x278ecde1", configure: "0xc9119f4b", setPrice: "0x91b7f5ed",
+  refund: "0x278ecde1", configure: "0xb717a262", setPrice: "0x91b7f5ed",
   isExpired: "0xd9548e53", ttl: "0x1575f63e", feeBps: "0xbf333f2c"
 };
 const ERC20 = { allowance: "0xdd62ed3e", approve: "0x095ea7b3", balanceOf: "0x70a08231" };
 const TOPIC_MSG = "0x2096cd4806a6f9634720b2b28d359d46b7292c895b42c68040ffdc1a016268bf";
-const TOPIC_SETTLED = "0x0b88c5bd74fc625a4f651904bf835063c6a449220be319924685261fb7709dd5";
+const TOPIC_SETTLED = "0x321f57f44af402708b8b3bad0bd10012cd568d8696946e26edeb86178bb7c27e";
 
 const SIG_MSG = "Talk\n\n" +
   "Sign to unlock your encrypted inbox.\n" +
   "This is free: it is not a transaction and costs no gas.\n\n" +
   "Key version: 1";
 
-const RULE_NAME = ["refund it", "I keep it", "split it"];
-const STATUS_LABEL = { 0: "—", 1: "in escrow", 2: "settled", 3: "refunded" };
+const RULE_NAME = ["keep 95%", "keep 95%", "keep 95%"];
+const STATUS_LABEL = { 0: "—", 1: "on hold", 2: "paid", 3: "returned" };
 
 /* ------------------------------- bytes ---------------------------------- */
 const strip0x = h => String(h || "").replace(/^0x/i, "").toLowerCase();
@@ -744,7 +744,7 @@ async function renderComposer() {
     if (els.composerHint) {
       els.composerHint.textContent = S.price === 0n
         ? "Free — you are already contacts, or the inbox is open."
-        : "Held in escrow for 72h. If they don't reply, you get it back.";
+        : "On hold for 72h. If they don't reply, most of it comes back.";
     }
     return;
   }
@@ -755,7 +755,7 @@ async function renderComposer() {
     if (els.composerHint) {
       els.composerHint.textContent = S.price === 0n
         ? "Free — you are already contacts, or the inbox is open."
-        : `Held in escrow for ${Math.round(S.ttl / 3600)}h. If they don't reply, you get it back.`;
+        : `On hold for ${Math.round(S.ttl / 3600)}h. If they don't reply, most of it comes back.`;
     }
   } catch (_) {
     if (els.priceTag) els.priceTag.textContent = "—";
@@ -790,7 +790,7 @@ function renderActions() {
     b.className = "sm";
     b.textContent = expired
       ? "Refund " + fmt(p.amount)
-      : "in escrow until " + new Date(p.expiresAt * 1000).toLocaleString();
+      : "on hold until " + new Date(p.expiresAt * 1000).toLocaleString();
     b.disabled = !expired;
     b.onclick = () => doRefund(p.id);
     els.threadActions.appendChild(b);
@@ -929,7 +929,7 @@ async function doSend(paymentId) {
     }
 
     const data = SEL.send + asAddr(peer) + u256(2 * 32) + dynBytes(ct);
-    if (await runTx(price > 0n ? "Sending · " + fmt(price) + " into escrow" : "Sending",
+    if (await runTx(price > 0n ? "Sending · " + fmt(price) + " on hold" : "Sending",
         () => ({ to: CFG.inbox, data }))) {
       els.text.value = "";
       await refresh();

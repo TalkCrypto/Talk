@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-interface IERC20 {
+interface IERC20T {
     function transfer(address to, uint256 amount) external returns (bool);
     function transferFrom(address from, address to, uint256 amount) external returns (bool);
     function balanceOf(address who) external view returns (uint256);
@@ -9,26 +9,24 @@ interface IERC20 {
 
 /**
  * @title TalkInbox
- * @notice Paid mail/chat between wallets, charged in a single token ($TALK).
+ * @notice Paid messaging between wallets, charged in one token ($TALK).
  *
- *  - Each wallet activates its inbox with an encryption public key and a price.
- *  - Writing to someone who charges leaves the payment in escrow inside the contract.
- *  - If they reply within 72h, the payment splits per their rule (refund / keep / 50-50).
- *  - If they don't reply, anyone can refund the sender (100%).
- *  - After the first reply they are contacts, and writing is free from then on.
- *  - Talk fee: 5% of what the recipient keeps. Nothing on refunds or free messages.
+ *  One price, two outcomes:
  *
- *  Message text is encrypted by the client (NaCl box): this contract only stores
- *  opaque bytes and can never read them.
+ *   - They reply within 72h -> the recipient keeps the price minus 5%, Talk takes 5%.
+ *   - Nobody replies        -> the sender gets 90% back, Talk keeps 10%.
+ *
+ *  The 10% forfeit is what makes the price a filter instead of a deposit: if every unanswered
+ *  message came back in full, sending would be free and an inbox would be flooded.
+ *
+ *  Message text is encrypted by the client (NaCl box). This contract only stores opaque bytes.
  */
 contract TalkInbox {
-    enum Rule { Refund, Keep, Split }
     enum Status { None, Pending, Settled, Refunded }
 
     struct Inbox {
         bool registered;
         bool open;      // true = anyone writes for free
-        Rule rule;      // what happens to the payment on reply
         bytes32 encKey; // owner's X25519 public key
         uint256 price;  // price for strangers, in $TALK (wei)
     }
@@ -41,16 +39,16 @@ contract TalkInbox {
         Status status;
     }
 
-    IERC20 public immutable token;
+    IERC20T public immutable token;
     address public immutable treasury;
 
     uint256 public constant TTL = 72 hours;
-    uint256 public constant FEE_BPS = 500;      // 5%
+    uint256 public constant FEE_BPS = 500;      // 5% of the price when the recipient replies
+    uint256 public constant FORFEIT_BPS = 1000; // 10% kept by Talk when nobody replies
     uint256 public constant BPS = 10_000;
     uint256 public constant MAX_CIPHERTEXT = 4096;
 
     uint256 public nextId = 1;
-    uint256 public messageCount;
 
     mapping(address => Inbox) public inboxes;
     mapping(uint256 => Payment) public payments;
@@ -64,53 +62,45 @@ contract TalkInbox {
         locked = false;
     }
 
-    event InboxSet(address indexed owner, bool open, uint8 rule, bytes32 encKey);
+    event InboxSet(address indexed owner, bool open, bytes32 encKey);
     event PriceSet(address indexed owner, uint256 price);
     event Message(uint256 indexed id, address indexed from, address indexed to, uint256 paymentId, bytes ciphertext);
     event MessagePaid(uint256 indexed paymentId, address indexed from, address indexed to, uint256 amount, uint64 expiresAt);
-    event Settled(uint256 indexed paymentId, uint256 toRecipient, uint256 toSender, uint256 fee);
-    event Refunded(uint256 indexed paymentId, uint256 amount);
+    event Settled(uint256 indexed paymentId, uint256 toRecipient, uint256 toTalk);
+    event Returned(uint256 indexed paymentId, uint256 toSender, uint256 toTalk);
 
     error ZeroAddress();
     error NotRegistered();
+    error AlreadyRegistered();
     error SelfMessage();
-    error InvalidRule();
-    error EmptyKey();
-    error TooLong();
     error NotPending();
-    error NotRecipient();
     error Expired();
     error NotExpired();
+    error NotRecipient();
+    error BadPrice();
+    error TooLong();
+    error WrongPayment();
     error TransferFailed();
-    error WrongPayment(uint256 required, uint256 received);
     error Reentrancy();
 
     constructor(address token_, address treasury_) {
         if (token_ == address(0) || treasury_ == address(0)) revert ZeroAddress();
-        token = IERC20(token_);
+        token = IERC20T(token_);
         treasury = treasury_;
     }
 
-    /* ------------------------------------------------------------------ */
-    /*                              config                                 */
-    /* ------------------------------------------------------------------ */
+    /* ------------------------------------------------------------------ config */
 
-    function configure(bool open, uint8 rule, bytes32 encKey, uint256 price) external {
-        if (rule > uint8(Rule.Split)) revert InvalidRule();
-        if (encKey == bytes32(0)) revert EmptyKey();
-
+    /// @notice Open or close the inbox, publish the encryption key and set the price.
+    function configure(bool open, bytes32 encKey, uint256 price) external {
+        if (encKey == bytes32(0)) revert BadPrice();
         Inbox storage box = inboxes[msg.sender];
         box.registered = true;
         box.open = open;
-        box.rule = Rule(rule);
         box.encKey = encKey;
-
-        emit InboxSet(msg.sender, open, rule, encKey);
-
-        if (box.price != price) {
-            box.price = price;
-            emit PriceSet(msg.sender, price);
-        }
+        box.price = price;
+        emit InboxSet(msg.sender, open, encKey);
+        emit PriceSet(msg.sender, price);
     }
 
     function setPrice(uint256 price) external {
@@ -119,141 +109,123 @@ contract TalkInbox {
         emit PriceSet(msg.sender, price);
     }
 
-    /* ------------------------------------------------------------------ */
-    /*                               send                                  */
-    /* ------------------------------------------------------------------ */
+    /* -------------------------------------------------------------------- send */
 
-    /// @notice Sends an encrypted message to `to`. Charges per the recipient's inbox.
-    /// @return paymentId 0 when free, otherwise the id of the escrowed payment.
+    /**
+     * @notice Send an encrypted message to `to`. Charges whatever `quote` says.
+     * @return paymentId 0 when the message was free, otherwise the id of the held payment.
+     */
     function send(address to, bytes calldata ciphertext) external nonReentrant returns (uint256 paymentId) {
         if (to == msg.sender) revert SelfMessage();
-        if (!inboxes[to].registered) revert NotRegistered();
         if (ciphertext.length > MAX_CIPHERTEXT) revert TooLong();
+        if (!inboxes[to].registered) revert NotRegistered();
 
         uint256 price = quote(msg.sender, to);
 
-        if (price > 0) {
-            _pullExact(msg.sender, price);
-            paymentId = nextId++;
-            payments[paymentId] = Payment({
-                from: msg.sender,
-                to: to,
-                amount: price,
-                expiresAt: uint64(block.timestamp + TTL),
-                status: Status.Pending
-            });
-            emit MessagePaid(paymentId, msg.sender, to, price, uint64(block.timestamp + TTL));
+        if (price == 0) {
+            emit Message(nextId, msg.sender, to, 0, ciphertext);
+            return 0;
         }
 
-        unchecked { ++messageCount; }
-        emit Message(messageCount, msg.sender, to, paymentId, ciphertext);
+        _pullExact(msg.sender, price);
+        paymentId = nextId++;
+        payments[paymentId] = Payment({
+            from: msg.sender,
+            to: to,
+            amount: price,
+            expiresAt: uint64(block.timestamp + TTL),
+            status: Status.Pending
+        });
+
+        emit Message(paymentId, msg.sender, to, paymentId, ciphertext);
+        emit MessagePaid(paymentId, msg.sender, to, price, uint64(block.timestamp + TTL));
     }
 
-    /* ------------------------------------------------------------------ */
-    /*                              reply                                  */
-    /* ------------------------------------------------------------------ */
+    /* ------------------------------------------------------------------- reply */
 
-    /// @notice Replies to a pending payment and settles it. Recipient only, before expiry.
+    /// @notice Reply to a held payment: 95% to you, 5% to Talk. Recipient only, before expiry.
     function reply(uint256 paymentId, bytes calldata ciphertext) external nonReentrant {
         if (ciphertext.length > MAX_CIPHERTEXT) revert TooLong();
 
         Payment storage p = payments[paymentId];
         if (p.status != Status.Pending) revert NotPending();
         if (p.to != msg.sender) revert NotRecipient();
-        if (block.timestamp > p.expiresAt) revert Expired();
+        if (block.timestamp >= p.expiresAt) revert Expired();
 
         p.status = Status.Settled;
 
-        // the replier's rule
-        Rule rule = inboxes[p.to].rule;
-        uint256 amount = p.amount;
-        uint256 toRecipient;
-        uint256 toSender;
-        uint256 fee;
+        uint256 fee = (p.amount * FEE_BPS) / BPS;
+        uint256 toRecipient = p.amount - fee;
 
-        if (rule == Rule.Refund) {
-            toSender = amount;
-        } else if (rule == Rule.Keep) {
-            fee = (amount * FEE_BPS) / BPS;
-            toRecipient = amount - fee;
-        } else {
-            toSender = amount / 2;
-            uint256 rest = amount - toSender;
-            fee = (rest * FEE_BPS) / BPS;
-            toRecipient = rest - fee;
-        }
+        _sendToken(msg.sender, toRecipient);
+        if (fee > 0) _sendToken(treasury, fee);
 
-        if (toSender > 0) _push(p.from, toSender);
-        if (toRecipient > 0) _push(p.to, toRecipient);
-        if (fee > 0) _push(treasury, fee);
+        // both directions become contacts: writing between them is free from now on
+        isContact[msg.sender][p.from] = true;
+        isContact[p.from][msg.sender] = true;
 
-        // they become contacts: writing between them is free from now on
-        isContact[p.from][p.to] = true;
-        isContact[p.to][p.from] = true;
-
-        emit Settled(paymentId, toRecipient, toSender, fee);
-
-        unchecked { ++messageCount; }
-        emit Message(messageCount, msg.sender, p.from, paymentId, ciphertext);
+        emit Message(paymentId, msg.sender, p.from, paymentId, ciphertext);
+        emit Settled(paymentId, toRecipient, fee);
     }
 
-    /* ------------------------------------------------------------------ */
-    /*                             refund                                  */
-    /* ------------------------------------------------------------------ */
+    /* ------------------------------------------------------------------ refund */
 
-    /// @notice Returns 100% to the sender if the deadline passed with no reply.
+    /// @notice After expiry anyone can settle it: 90% to the sender, 10% to Talk.
     function refund(uint256 paymentId) external nonReentrant {
         Payment storage p = payments[paymentId];
         if (p.status != Status.Pending) revert NotPending();
-        if (block.timestamp <= p.expiresAt) revert NotExpired();
+        if (block.timestamp < p.expiresAt) revert NotExpired();
 
         p.status = Status.Refunded;
-        _push(p.from, p.amount);
 
-        emit Refunded(paymentId, p.amount);
+        uint256 forfeit = (p.amount * FORFEIT_BPS) / BPS;
+        uint256 toSender = p.amount - forfeit;
+
+        _sendToken(p.from, toSender);
+        if (forfeit > 0) _sendToken(treasury, forfeit);
+
+        emit Returned(paymentId, toSender, forfeit);
     }
 
-    /* ------------------------------------------------------------------ */
-    /*                               views                                 */
-    /* ------------------------------------------------------------------ */
+    /* ------------------------------------------------------------------- views */
 
     /// @notice What it costs to write from `from` to `to` (0 = free).
     function quote(address from, address to) public view returns (uint256) {
+        if (from == to) return 0;
         Inbox storage box = inboxes[to];
         if (!box.registered) return 0;
         if (box.open) return 0;
-        if (isContact[from][to] || isContact[to][from]) return 0;
+        if (isContact[to][from]) return 0;
         return box.price;
     }
 
-    /// @notice Pending payments past their deadline that can be refunded.
     function isExpired(uint256 paymentId) external view returns (bool) {
         Payment storage p = payments[paymentId];
-        return p.status == Status.Pending && block.timestamp > p.expiresAt;
+        return p.status == Status.Pending && block.timestamp >= p.expiresAt;
     }
 
-    /* ------------------------------------------------------------------ */
-    /*                            internal                                 */
-    /* ------------------------------------------------------------------ */
+    /// @notice Pending payments past their deadline that anyone can settle.
+    function refundable(uint256 paymentId) external view returns (bool) {
+        Payment storage p = payments[paymentId];
+        return p.status == Status.Pending && block.timestamp >= p.expiresAt;
+    }
 
-    /// @dev Pulls exactly `amount` into the contract and verifies it arrived (fee-on-transfer safety).
+    /* ---------------------------------------------------------------- internal */
+
+    /// @dev Pulls exactly `amount` and checks it arrived (fee-on-transfer safety).
     function _pullExact(address from, uint256 amount) private {
         uint256 before = token.balanceOf(address(this));
-        _safeCall(address(token), abi.encodeCall(IERC20.transferFrom, (from, address(this), amount)));
-        uint256 afterBal = token.balanceOf(address(this));
-        if (afterBal < before || afterBal - before != amount) {
-            revert WrongPayment(amount, afterBal > before ? afterBal - before : 0);
-        }
+        _call(address(token), abi.encodeWithSelector(IERC20T.transferFrom.selector, from, address(this), amount));
+        if (token.balanceOf(address(this)) - before != amount) revert WrongPayment();
     }
 
-    function _push(address to, uint256 amount) private {
-        _safeCall(address(token), abi.encodeCall(IERC20.transfer, (to, amount)));
+    function _sendToken(address to, uint256 amount) private {
+        _call(address(token), abi.encodeWithSelector(IERC20T.transfer.selector, to, amount));
     }
 
-    /// @dev Accepts tokens that return bool or return nothing at all (USDT-like).
-    function _safeCall(address target, bytes memory data) private {
-        (bool ok, bytes memory ret) = target.call(data);
-        if (!ok) revert TransferFailed();
-        if (ret.length > 0 && !abi.decode(ret, (bool))) revert TransferFailed();
+    /// @dev Accepts tokens that return bool and tokens that return nothing (USDT-like).
+    function _call(address target, bytes memory data) private {
+        (bool ok, bytes memory res) = target.call(data);
+        if (!ok || (res.length > 0 && !abi.decode(res, (bool)))) revert TransferFailed();
     }
 }

@@ -1,9 +1,8 @@
 """
-End-to-end test of TalkInbox on a local EVM node (anvil).
+End-to-end test of TalkInbox on a local EVM node (anvil) — one price, two outcomes.
 
-Covers the full cycle with real test money:
-  activate inbox -> send paying -> reply and settle (3 rules) -> contacts go free
-  -> refund after expiry -> expected failures
+  reply within 72h -> recipient keeps 95%, Talk takes 5%
+  no reply         -> sender gets 90% back, Talk keeps 10%
 """
 import json
 import sys
@@ -17,7 +16,6 @@ RPC = "http://127.0.0.1:8546"
 ROOT = r"C:\Users\nonam\Desktop\PROYECTOS\Talk"
 UNIT = 10**18
 
-# ---------------------------------------------------------------- transport
 _id = [0]
 
 
@@ -25,7 +23,7 @@ def post(method, params):
     _id[0] += 1
     body = json.dumps({"jsonrpc": "2.0", "id": _id[0], "method": method, "params": params}).encode()
     req = urllib.request.Request(RPC, data=body, headers={"Content-Type": "application/json"})
-    with urllib.request.urlopen(req, timeout=60) as r:
+    with urllib.request.urlopen(req, timeout=90) as r:
         out = json.loads(r.read().decode())
     if "error" in out:
         raise RuntimeError(out["error"].get("message", out["error"]))
@@ -37,7 +35,7 @@ def sel(sig):
 
 
 def u256(v):
-    return f"{int(v):064x}"
+    return f"{int(v) & ((1 << 256) - 1):064x}"
 
 
 def addr(a):
@@ -45,11 +43,8 @@ def addr(a):
 
 
 def w(hexdata, i):
-    return hexdata[2 + i * 64: 2 + (i + 1) * 64]
-
-
-def to_int(hexdata):
-    return int(hexdata, 16)
+    h = hexdata[2:] if hexdata.startswith("0x") else hexdata
+    return int(h[i * 64:(i + 1) * 64] or "0", 16)
 
 
 def call(to, data):
@@ -57,58 +52,58 @@ def call(to, data):
 
 
 def send(frm, to, data, value=0):
-    tx = {"from": frm, "to": to, "data": data}
+    tx = {"from": frm, "to": to, "data": data, "gas": hex(6_000_000)}
     if value:
         tx["value"] = hex(value)
     h = post("eth_sendTransaction", [tx])
-    for _ in range(200):
+    for _ in range(400):
         r = post("eth_getTransactionReceipt", [h])
         if r:
             if r["status"] != "0x1":
-                raise RuntimeError("reverted: " + h)
+                raise RuntimeError("reverted")
             return r
         time.sleep(0.05)
-    raise RuntimeError("timeout " + h)
-
-
-def expect_revert(fn, label):
-    try:
-        fn()
-    except RuntimeError:
-        results.append((True, label))
-        return
-    results.append((False, label + " (did not revert)"))
+    raise RuntimeError("timeout")
 
 
 results = []
 
 
-def check(label, cond):
-    results.append((bool(cond), label))
+def check(cond, label):
+    cond = bool(cond)
+    results.append((cond, label))
+    print(("  PASS  " if cond else "  FAIL  ") + label)
 
 
-# ---------------------------------------------------------------- deploy
-def deploy(artifact, args_hex):
-    data = artifact["bytecode"] + args_hex
-    r = send(ACCOUNTS[0], None, data) if False else send_creation(data)
-    return r["contractAddress"]
+def expect_revert(fn, label):
+    try:
+        fn()
+    except Exception:
+        return check(True, label)
+    return check(False, label)
 
 
-def send_creation(data):
-    h = post("eth_sendTransaction", [{"from": ACCOUNTS[0], "data": data, "gas": hex(8_000_000)}])
-    for _ in range(300):
+def deploy(art, args_hex):
+    tx = {"from": ACCOUNTS[0], "data": "0x" + art["bin"] + args_hex, "gas": hex(6_000_000)}
+    h = post("eth_sendTransaction", [tx])
+    for _ in range(400):
         r = post("eth_getTransactionReceipt", [h])
         if r:
             if r["status"] != "0x1":
                 raise RuntimeError("deploy reverted")
-            return r
+            return r["contractAddress"]
         time.sleep(0.05)
-    raise RuntimeError("timeout deploy")
+    raise RuntimeError("deploy timeout")
+
+
+def enc_str(s):
+    b = s.encode()
+    return u256(len(b)) + b.hex().ljust(((len(b) + 31) // 32) * 64, "0")
 
 
 ACCOUNTS = post("eth_accounts", [])
-if len(ACCOUNTS) < 5:
-    raise SystemExit("anvil needs 5 accounts")
+A, B, C = ACCOUNTS[0], ACCOUNTS[1], ACCOUNTS[2]
+TREASURY = ACCOUNTS[3]
 
 ART = json.load(open(ROOT + r"\contracts\build\combined.json", encoding="utf-8"))
 
@@ -116,238 +111,138 @@ ART = json.load(open(ROOT + r"\contracts\build\combined.json", encoding="utf-8")
 def art(name):
     for k, v in ART["contracts"].items():
         if k.endswith(":" + name):
-            return {"abi": v["abi"], "bytecode": "0x" + v["bin"]}
+            return v
     raise KeyError(name)
 
 
-TOKEN_ART = art("TalkToken")
-INBOX_ART = art("TalkInbox")
+TOKEN_ART, INBOX_ART = art("TalkToken"), art("TalkInbox")
 
-A, B, C, D, TREASURY = ACCOUNTS[0], ACCOUNTS[1], ACCOUNTS[2], ACCOUNTS[3], ACCOUNTS[4]
-SUPPLY = 1_000_000 * UNIT
-
-
-def enc_str(s):
-    b = s.encode()
-    h = b.hex()
-    return u256(len(b)) + h.ljust((len(h) + 63) // 64 * 64, "0")
-
-
-# constructor TalkToken(string,string,uint256,address)
-name_e, sym_e = enc_str("Talk"), enc_str("TALK")
-off_name = 4 * 32
-off_sym = off_name + len(name_e) // 2
-token_args = u256(off_name) + u256(off_sym) + u256(SUPPLY) + addr(A) + name_e + sym_e
-TOKEN = deploy(TOKEN_ART, token_args)
-
-# constructor TalkInbox(address token, address treasury)
-INBOX = deploy(INBOX_ART, addr(TOKEN) + addr(TREASURY))
-
-print("TOKEN:", TOKEN)
-print("INBOX:", INBOX)
-
-SEL = {
-    "configure": sel("configure(bool,uint8,bytes32,uint256)"),
+S = {
+    "transfer": sel("transfer(address,uint256)"),
+    "approve": sel("approve(address,uint256)"),
+    "balanceOf": sel("balanceOf(address)"),
+    "configure": sel("configure(bool,bytes32,uint256)"),
     "setPrice": sel("setPrice(uint256)"),
-    "inboxes": sel("inboxes(address)"),
-    "payments": sel("payments(uint256)"),
-    "quote": sel("quote(address,address)"),
-    "isContact": sel("isContact(address,address)"),
     "send": sel("send(address,bytes)"),
     "reply": sel("reply(uint256,bytes)"),
     "refund": sel("refund(uint256)"),
-    "ttl": sel("TTL()"),
-    "feeBps": sel("FEE_BPS()"),
+    "quote": sel("quote(address,address)"),
+    "isContact": sel("isContact(address,address)"),
     "nextId": sel("nextId()"),
-    "token": sel("token()"),
-    "treasury": sel("treasury()"),
-    "bal": sel("balanceOf(address)"),
-    "approve": sel("approve(address,uint256)"),
-    "allowance": sel("allowance(address,address)"),
+    "TTL": sel("TTL()"),
+    "FEE_BPS": sel("FEE_BPS()"),
+    "FORFEIT_BPS": sel("FORFEIT_BPS()"),
+    "inboxes": sel("inboxes(address)"),
+    "payments": sel("payments(uint256)"),
+    "isExpired": sel("isExpired(uint256)"),
 }
 
-
-def enc_bytes(hexdata):
-    h = hexdata.replace("0x", "")
-    n = len(h) // 2
-    return u256(n) + h.ljust((len(h) + 63) // 64 * 64, "0")
+SUPPLY = 1_000_000 * UNIT
+KEY = "11" * 32
 
 
-def ct(nbytes, tag):
-    """Test envelope: version byte 1 plus padding to the requested size."""
-    body = "01" + (tag.encode().hex().ljust(nbytes * 2, "0"))[: nbytes * 2]
-    return "0x" + body
+def ct(n=60, tag=1):
+    """Envelope: version 1 + pubkey + nonce + payload."""
+    return "0x01" + KEY + "22" * 24 + (f"{tag:02x}" * n)
 
 
-def token_bal(who):
-    return to_int(call(TOKEN, SEL["bal"] + addr(who)))
+def bal(who):
+    return w(call(TOKEN, S["balanceOf"] + addr(who)), 0)
 
 
-def inbox_of(who):
-    d = call(INBOX, SEL["inboxes"] + addr(who))
-    return {
-        "registered": to_int(w("0x" + w(d, 0), 0)) if False else int(w(d, 0), 16) == 1,
-        "open": int(w(d, 1), 16) == 1,
-        "rule": int(w(d, 2), 16),
-        "encKey": w(d, 3),
-        "price": int(w(d, 4), 16),
-    }
+def bytes_arg(hexstr):
+    raw = hexstr[2:]
+    n = len(raw) // 2
+    return u256(n) + raw.ljust(((n + 31) // 32) * 64, "0")
 
 
-def payment(pid):
-    d = call(INBOX, SEL["payments"] + u256(pid))
-    return {
-        "from": "0x" + w(d, 0)[24:],
-        "to": "0x" + w(d, 1)[24:],
-        "amount": int(w(d, 2), 16),
-        "expires": int(w(d, 3), 16),
-        "status": int(w(d, 4), 16),
-    }
+print("\nTALK INBOX — one price, two outcomes\n" + "=" * 66)
 
+off_name = 4 * 32
+name_e, sym_e = enc_str("Talk"), enc_str("TALK")
+off_sym = off_name + len(name_e) // 2
+TOKEN = deploy(TOKEN_ART, u256(off_name) + u256(off_sym) + u256(SUPPLY) + addr(A) + name_e + sym_e)
+INBOX = deploy(INBOX_ART, addr(TOKEN) + addr(TREASURY))
 
-def quote(a, b):
-    return to_int(call(INBOX, SEL["quote"] + addr(a) + addr(b)))
+check(w(call(INBOX, S["TTL"]), 0) == 72 * 3600, "TTL == 72h")
+check(w(call(INBOX, S["FEE_BPS"]), 0) == 500, "reply fee == 5%")
+check(w(call(INBOX, S["FORFEIT_BPS"]), 0) == 1000, "no-reply forfeit == 10%")
+check(w(call(INBOX, S["nextId"]), 0) == 1, "nextId starts at 1")
 
+# ---------------------------------------------------------------- funds + inboxes
+for who in (A, B, C):
+    send(A, TOKEN, S["transfer"] + addr(who) + u256(1000 * UNIT))
+    send(who, TOKEN, S["approve"] + addr(INBOX) + u256(1000 * UNIT))
 
-def is_contact(a, b):
-    return int(call(INBOX, SEL["isContact"] + addr(a) + addr(b)), 16) == 1
+check(bal(B) == 1000 * UNIT, "B funded")
 
+print("\n1. opening an inbox")
+send(A, INBOX, S["configure"] + u256(0) + KEY + u256(100 * UNIT))
+box = call(INBOX, S["inboxes"] + addr(A))
+check(w(box, 0) == 1, "A is registered")
+check(w(box, 1) == 0, "A's inbox is not open")
+check(w(box, 3) == 100 * UNIT, "A charges 100 TALK")
+check(w(call(INBOX, S["quote"] + addr(B) + addr(A)), 0) == 100 * UNIT, "quote B->A == 100")
+check(w(call(INBOX, S["quote"] + addr(A) + addr(B)), 0) == 0, "quote A->B == 0 (B has no inbox)")
 
-# ============================================================ 0. constants
-check("TTL == 72h", to_int(call(INBOX, SEL["ttl"])) == 72 * 3600)
-check("FEE_BPS == 500 (5%)", to_int(call(INBOX, SEL["feeBps"])) == 500)
-check("token() == $TALK", "0x" + w(call(INBOX, SEL["token"]), 0)[24:] == TOKEN.lower())
-check("treasury() == treasury", "0x" + w(call(INBOX, SEL["treasury"]), 0)[24:] == TREASURY.lower())
-check("nextId starts at 1", to_int(call(INBOX, SEL["nextId"])) == 1)
+print("\n2. sending a paid message")
+b_before = bal(B)
+send(B, INBOX, S["send"] + addr(A) + u256(64) + bytes_arg(ct()))
+check(bal(B) == b_before - 100 * UNIT, "B paid exactly 100 TALK")
+check(bal(INBOX) == 100 * UNIT, "the contract holds 100 on hold")
+check(w(call(INBOX, S["nextId"]), 0) == 2, "nextId moved to 2")
+p1 = call(INBOX, S["payments"] + u256(1))
+check(w(p1, 4) == 1, "payment 1 is pending")
 
-# ============================================================ 1. token distribution
-TRANSFER = sel("transfer(address,uint256)")
-for who in (B, C, D):
-    send(A, TOKEN, "0x" + TRANSFER[2:] + addr(who) + u256(10_000 * UNIT))
-for who in (B, C, D):
-    send(who, TOKEN, SEL["approve"] + addr(INBOX) + u256(10_000 * UNIT))
-check("B received 10,000 TALK", token_bal(B) == 10_000 * UNIT)
-check("A keeps the rest", token_bal(A) == (SUPPLY - 30_000 * UNIT))
-check("B approved the contract", to_int(call(TOKEN, SEL["allowance"] + addr(B) + addr(INBOX))) == 10_000 * UNIT)
+print("\n3. replying: 95 / 5")
+a_before, t_before = bal(A), bal(TREASURY)
+send(A, INBOX, S["reply"] + u256(1) + u256(64) + bytes_arg(ct(50, 2)))
+check(bal(A) - a_before == 95 * UNIT, "A received 95 (100 - 5%)")
+check(bal(TREASURY) - t_before == 5 * UNIT, "Talk received 5")
+check(bal(INBOX) == 0, "the hold is empty")
+check(w(call(INBOX, S["isContact"] + addr(A) + addr(B)), 0) == 1, "A and B are now contacts")
+check(w(call(INBOX, S["quote"] + addr(B) + addr(A)), 0) == 0, "free for B after the reply")
 
-# ============================================================ 2. activate inbox
-KEY_B = "11" * 32
-KEY_C = "22" * 32
-KEY_D = "33" * 32
+b_before = bal(B)
+send(B, INBOX, S["send"] + addr(A) + u256(64) + bytes_arg(ct()))
+check(bal(B) == b_before, "a contact writes for free")
+check(w(call(INBOX, S["nextId"]), 0) == 2, "free messages don't create a payment")
 
-# A cobra 100 TALK, regla Keep (se lo queda menos 5%)
-send(A, INBOX, SEL["configure"] + u256(0) + u256(1) + KEY_B + u256(100 * UNIT))
-box = inbox_of(A)
-check("A: inbox registered", box["registered"])
-check("A: price 100 TALK", box["price"] == 100 * UNIT)
-check("A: rule Keep", box["rule"] == 1)
-check("A: encKey stored", box["encKey"] == KEY_B)
+print("\n4. nobody replies: 90 / 10")
+send(C, INBOX, S["send"] + addr(A) + u256(64) + bytes_arg(ct()))
+check(bal(INBOX) == 100 * UNIT, "C's payment is on hold")
+expect_revert(lambda: send(A, INBOX, S["refund"] + u256(2)), "refunding before expiry reverts")
 
-check("quote(B->A) == 100 TALK", quote(B, A) == 100 * UNIT)
-check("quote(A->B) == 0 (B has no inbox)", quote(A, B) == 0)
-
-expect_revert(lambda: send(B, INBOX, SEL["send"] + addr(C) + u256(2 * 32) + enc_bytes(ct(80, "hola"))),
-              "sending to a wallet with no inbox reverts (NotRegistered)")
-expect_revert(lambda: send(A, INBOX, SEL["send"] + addr(A) + u256(2 * 32) + enc_bytes(ct(80, "yo"))),
-              "messaging yourself reverts (SelfMessage)")
-
-# ============================================================ 3. send paying
-before_b = token_bal(B)
-send(B, INBOX, SEL["send"] + addr(A) + u256(2 * 32) + enc_bytes(ct(80, "hola")))
-after_b = token_bal(B)
-check("B paid exactly 100 TALK", before_b - after_b == 100 * UNIT)
-check("the contract holds 100 in escrow", token_bal(INBOX) == 100 * UNIT)
-check("nextId moved to 2", to_int(call(INBOX, SEL["nextId"])) == 2)
-
-p = payment(1)
-tip = int(post("eth_getBlockByNumber", ["latest", False])["timestamp"], 16)
-check("payment 1 is pending", p["status"] == 1)
-check("payment 1: from B, to A", p["from"].lower() == B.lower() and p["to"].lower() == A.lower())
-check("payment 1: expires in 72h", p["expires"] - tip == 72 * 3600)
-
-# ============================================================ 4. Keep rule
-before_a, before_t = token_bal(A), token_bal(TREASURY)
-send(A, INBOX, SEL["reply"] + u256(1) + u256(2 * 32) + enc_bytes(ct(90, "respuesta")))
-after_a, after_t = token_bal(A), token_bal(TREASURY)
-check("A received 95 TALK (100 - 5%)", after_a - before_a == 95 * UNIT)
-check("treasury received 5 TALK", after_t - before_t == 5 * UNIT)
-check("payment 1 settled", payment(1)["status"] == 2)
-check("escrow is empty", token_bal(INBOX) == 0)
-check("A and B are now contacts", is_contact(A, B) and is_contact(B, A))
-check("quote(B->A) == 0 after replying", quote(B, A) == 0)
-
-expect_revert(lambda: send(A, INBOX, SEL["reply"] + u256(1) + u256(2 * 32) + enc_bytes(ct(80, "otra"))),
-              "replying twice reverts (NotPending)")
-expect_revert(lambda: send(B, INBOX, SEL["reply"] + u256(1) + u256(2 * 32) + enc_bytes(ct(80, "x"))),
-              "replying to someone else's payment reverts (NotPending)")
-
-# ============================================================ 5. free after contact
-before_b = token_bal(B)
-send(B, INBOX, SEL["send"] + addr(A) + u256(2 * 32) + enc_bytes(ct(70, "free")))
-check("contact messages are free", token_bal(B) == before_b)
-check("no new payment is created", to_int(call(INBOX, SEL["nextId"])) == 2)
-
-# ============================================================ 6. Split rule
-send(C, INBOX, SEL["configure"] + u256(0) + u256(2) + KEY_C + u256(200 * UNIT))
-before_d = token_bal(D)
-send(D, INBOX, SEL["send"] + addr(C) + u256(2 * 32) + enc_bytes(ct(80, "split")))
-check("D paid 200", before_d - token_bal(D) == 200 * UNIT)
-
-before_c, before_t = token_bal(C), token_bal(TREASURY)
-send(C, INBOX, SEL["reply"] + u256(2) + u256(2 * 32) + enc_bytes(ct(80, "ok")))
-after_c, after_t = token_bal(C), token_bal(TREASURY)
-recv = after_c - before_c
-fee = after_t - before_t
-check("split: C gets 95 (half of 100, minus 5%)", recv == 95 * UNIT)
-check("split: fee is 5", fee == 5 * UNIT)
-check("split: D gets 100 back", token_bal(D) == before_d - 200 * UNIT + 100 * UNIT)
-
-# ============================================================ 7. Refund rule
-send(A, INBOX, SEL["configure"] + u256(0) + u256(0) + KEY_B + u256(80 * UNIT))
-# A y B son contactos: necesitamos un tercero. D escribe a A.
-before_d = token_bal(D)
-send(D, INBOX, SEL["send"] + addr(A) + u256(2 * 32) + enc_bytes(ct(80, "refund")))
-check("D paid 80", before_d - token_bal(D) == 80 * UNIT)
-before_d = token_bal(D)
-send(A, INBOX, SEL["reply"] + u256(3) + u256(2 * 32) + enc_bytes(ct(80, "toma")))
-check("Refund rule: the sender gets 80 back", token_bal(D) - before_d == 80 * UNIT)
-check("Refund rule: no fee", payment(3)["status"] == 2)
-
-# ============================================================ 8. expiry and refund
-send(B, INBOX, SEL["configure"] + u256(0) + u256(1) + KEY_B + u256(50 * UNIT))
-# B y C no son contactos
-before_c = token_bal(C)
-send(C, INBOX, SEL["send"] + addr(B) + u256(2 * 32) + enc_bytes(ct(80, "payment")))
-pid = to_int(call(INBOX, SEL["nextId"])) - 1
-check("new payment in escrow", payment(pid)["status"] == 1)
-expect_revert(lambda: send(C, INBOX, SEL["refund"] + u256(pid)),
-              "refunding early reverts (NotExpired)")
-
-post("evm_increaseTime", [72 * 3600 + 60])
+post("evm_increaseTime", [72 * 3600 + 10])
 post("evm_mine", [])
-send(C, INBOX, SEL["refund"] + u256(pid))
-check("after 72h the sender gets everything back", token_bal(C) == before_c)
-check("payment refunded", payment(pid)["status"] == 3)
-check("escrow is empty at the end", token_bal(INBOX) == 0)
-expect_revert(lambda: send(C, INBOX, SEL["refund"] + u256(pid)),
-              "refunding twice reverts (NotPending)")
 
-# ============================================================ 9. open inbox
-send(A, INBOX, SEL["configure"] + u256(1) + u256(1) + KEY_B + u256(500 * UNIT))
-before_d = token_bal(D)
-send(D, INBOX, SEL["send"] + addr(A) + u256(2 * 32) + enc_bytes(ct(60, "abierto")))
-check("open inbox: writing is free", token_bal(D) == before_d)
+check(w(call(INBOX, S["isExpired"] + u256(2)), 0) == 1, "payment 2 is expired")
+c_before, t_before = bal(C), bal(TREASURY)
+send(B, INBOX, S["refund"] + u256(2))   # anyone can settle it
+check(bal(C) - c_before == 90 * UNIT, "the sender got 90 back")
+check(bal(TREASURY) - t_before == 10 * UNIT, "Talk kept 10")
+check(bal(INBOX) == 0, "the hold is empty again")
+check(C != A and w(call(INBOX, S["quote"] + addr(C) + addr(A)), 0) == 100 * UNIT,
+      "C is not a contact: still pays")
 
-# ============================================================ 10. limits
-expect_revert(lambda: send(D, INBOX, SEL["send"] + addr(A) + u256(2 * 32) + enc_bytes("0x" + "aa" * 5000)),
-              "oversized message reverts (TooLong)")
+print("\n5. expected failures")
+expect_revert(lambda: send(B, INBOX, S["send"] + addr(B) + u256(64) + bytes_arg(ct())), "messaging yourself reverts")
+expect_revert(lambda: send(B, INBOX, S["send"] + addr(C) + u256(64) + bytes_arg(ct())), "sending to a wallet with no inbox reverts")
+expect_revert(lambda: send(B, INBOX, S["reply"] + u256(2) + u256(64) + bytes_arg(ct())), "replying twice reverts")
+expect_revert(lambda: send(B, INBOX, S["reply"] + u256(1) + u256(64) + bytes_arg(ct())), "replying to someone else's payment reverts")
+expect_revert(lambda: send(B, INBOX, S["refund"] + u256(1)), "refunding a settled payment reverts")
+expect_revert(lambda: send(B, INBOX, S["send"] + addr(A) + u256(64) + bytes_arg(ct(5000))),
+              "an oversized message reverts")
 
-# ============================================================ result
-print()
-ok = 0
-for passed, label in results:
-    print(("  PASS  " if passed else "  FAIL  ") + label)
-    ok += 1 if passed else 0
-print(f"\n{ok}/{len(results)} checks OK")
-sys.exit(0 if ok == len(results) else 1)
+print("\n6. open inbox")
+send(B, INBOX, S["configure"] + u256(1) + KEY + u256(500 * UNIT))
+check(w(call(INBOX, S["quote"] + addr(C) + addr(B)), 0) == 0, "an open inbox charges nothing")
 
+print("\n" + "=" * 66)
+ok = sum(1 for passed, _ in results if passed)
+print(f"{ok}/{len(results)} checks OK")
+if ok != len(results):
+    for passed, label in results:
+        if not passed:
+            print("  - " + label)
+    sys.exit(1)

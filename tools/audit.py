@@ -179,7 +179,7 @@ check("fonts.googleapis.com" in landing_html or "@font-face" in styles_css,
 fns = [e["name"] for e in INBOX["abi"] if e["type"] == "function"]
 expected_fns = {"configure", "setPrice", "send", "reply", "refund", "quote",
                 "inboxes", "payments", "isContact", "isExpired", "nextId",
-                "messageCount", "token", "treasury", "TTL", "FEE_BPS", "BPS", "MAX_CIPHERTEXT"}
+                "FORFEIT_BPS", "token", "treasury", "TTL", "FEE_BPS", "BPS", "MAX_CIPHERTEXT"}
 check(expected_fns.issubset(set(fns)), "the contract exposes the expected surface",
       ", ".join(sorted(expected_fns - set(fns))) or "ok")
 check("withdraw" not in [f.lower() for f in fns], "the contract has no withdraw (no backdoor)")

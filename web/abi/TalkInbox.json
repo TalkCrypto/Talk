@@ -17,17 +17,17 @@
   },
   {
     "inputs": [],
-    "name": "EmptyKey",
+    "name": "AlreadyRegistered",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "BadPrice",
     "type": "error"
   },
   {
     "inputs": [],
     "name": "Expired",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InvalidRule",
     "type": "error"
   },
   {
@@ -71,18 +71,7 @@
     "type": "error"
   },
   {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "required",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "received",
-        "type": "uint256"
-      }
-    ],
+    "inputs": [],
     "name": "WrongPayment",
     "type": "error"
   },
@@ -105,12 +94,6 @@
         "internalType": "bool",
         "name": "open",
         "type": "bool"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint8",
-        "name": "rule",
-        "type": "uint8"
       },
       {
         "indexed": false,
@@ -227,11 +210,17 @@
       {
         "indexed": false,
         "internalType": "uint256",
-        "name": "amount",
+        "name": "toSender",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "toTalk",
         "type": "uint256"
       }
     ],
-    "name": "Refunded",
+    "name": "Returned",
     "type": "event"
   },
   {
@@ -252,13 +241,7 @@
       {
         "indexed": false,
         "internalType": "uint256",
-        "name": "toSender",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "fee",
+        "name": "toTalk",
         "type": "uint256"
       }
     ],
@@ -281,6 +264,19 @@
   {
     "inputs": [],
     "name": "FEE_BPS",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "FORFEIT_BPS",
     "outputs": [
       {
         "internalType": "uint256",
@@ -325,11 +321,6 @@
         "type": "bool"
       },
       {
-        "internalType": "uint8",
-        "name": "rule",
-        "type": "uint8"
-      },
-      {
         "internalType": "bytes32",
         "name": "encKey",
         "type": "bytes32"
@@ -364,11 +355,6 @@
         "internalType": "bool",
         "name": "open",
         "type": "bool"
-      },
-      {
-        "internalType": "enum TalkInbox.Rule",
-        "name": "rule",
-        "type": "uint8"
       },
       {
         "internalType": "bytes32",
@@ -422,19 +408,6 @@
         "internalType": "bool",
         "name": "",
         "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "messageCount",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
       }
     ],
     "stateMutability": "view",
@@ -535,6 +508,25 @@
         "internalType": "uint256",
         "name": "paymentId",
         "type": "uint256"
+      }
+    ],
+    "name": "refundable",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "paymentId",
+        "type": "uint256"
       },
       {
         "internalType": "bytes",
@@ -589,7 +581,7 @@
     "name": "token",
     "outputs": [
       {
-        "internalType": "contract IERC20",
+        "internalType": "contract IERC20T",
         "name": "",
         "type": "address"
       }
