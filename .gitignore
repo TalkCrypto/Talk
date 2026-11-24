@@ -16,3 +16,8 @@ desktop.ini
 npm-debug.log*
 .cache/
 tmp/
+
+# secretos: nunca al repo
+.env
+.env.*
+!.env.example
