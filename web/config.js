@@ -12,6 +12,7 @@ window.TALK_CONFIG = {
   // Deployment addresses (empty until you deploy).
   token: "",      // $TALK (ERC-20)
   inbox: "",      // TalkInbox
+  curve: "",      // TalkCurve (primary sale)
   fromBlock: 0,   // block where TalkInbox was deployed
 
   symbol: "TALK",

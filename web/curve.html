@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0a0a0b">
+<title>Talk — the curve</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="landing.css">
+<link rel="stylesheet" href="curve.css">
+</head>
+<body class="curve-body">
+
+<header class="site-head">
+  <div class="site-head-in">
+    <a class="logo" href="index.html"><b>Talk</b><span>Messaging</span></a>
+    <nav class="site-nav">
+      <a href="index.html#product">Product</a>
+      <a href="curve.html" class="on">Curve</a>
+      <a href="index.html#tokenomics">Token</a>
+      <a href="app.html">Inbox</a>
+    </nav>
+    <div class="head-right">
+      <span class="chip-addr" id="addr">not connected</span>
+      <button class="btn btn-solid btn-sm" id="btnConnect">Connect</button>
+    </div>
+  </div>
+</header>
+
+<main class="curve-wrap">
+  <div class="band-in" style="padding-left:0;padding-right:0">
+    <div class="eyebrow"><i></i> Primary sale</div>
+    <h1 class="curve-h1">The curve.</h1>
+    <p class="lede">
+      $TALK is distributed along a linear curve: the price rises with every token sold.
+      Buy and sell at the same terms the contract offers — no allocation, no vesting, no whitelist.
+    </p>
+  </div>
+
+  <div class="curve-grid" id="grid">
+    <section class="curve-card">
+      <div class="cc-head">
+        <span class="cc-k">Price now</span>
+        <span class="cc-live" id="status">reading…</span>
+      </div>
+      <div class="cc-price"><b id="price">—</b><span>ETH</span></div>
+
+      <div class="cc-bar"><i id="progressBar" style="width:0%"></i></div>
+      <div class="cc-bar-lbl">
+        <span id="soldLbl">— sold</span>
+        <span id="pctLbl">0%</span>
+      </div>
+
+      <dl class="cc-stats">
+        <div><dt>Raised</dt><dd id="raised">—</dd></div>
+        <div><dt>Left on the curve</dt><dd id="left">—</dd></div>
+        <div><dt>Your $TALK</dt><dd id="myTok">—</dd></div>
+        <div><dt>Your ETH</dt><dd id="myEth">—</dd></div>
+      </dl>
+    </section>
+
+    <section class="curve-card">
+      <div class="tabs">
+        <button class="tab on" data-tab="buy">Buy</button>
+        <button class="tab" data-tab="sell">Sell</button>
+      </div>
+
+      <div class="field">
+        <label id="inLbl">You send</label>
+        <div class="input-row">
+          <input id="amountIn" inputmode="decimal" placeholder="0.0" autocomplete="off">
+          <span class="unit" id="inUnit">ETH</span>
+        </div>
+      </div>
+
+      <div class="quote">
+        <div class="q-row"><span id="outLbl">You get</span><b id="amountOut">—</b></div>
+        <div class="q-row small"><span id="feeLbl">Fee</span><b id="feeOut">—</b></div>
+        <div class="q-row small"><span>Slippage guard</span><b id="slipOut">1%</b></div>
+      </div>
+
+      <button class="btn btn-solid btn-wide" id="btnAction" disabled>Connect to continue</button>
+      <p class="fine" id="fine">Prices come straight from the contract. Nothing is cached.</p>
+    </section>
+  </div>
+
+  <section class="band-in" style="padding-left:0;padding-right:0">
+    <div class="tag"><b>How it works</b><hr></div>
+    <div class="grid-4" style="margin-top:26px">
+      <article class="cell"><div class="n">01</div><h3>Linear, not magic</h3><p>The price is a straight line in the amount sold. Buying costs the area under it between two points.</p></article>
+      <article class="cell"><div class="n">02</div><h3>1% fee</h3><p>Charged on what you actually spend or return, sent to the treasury in the same transaction.</p></article>
+      <article class="cell"><div class="n">03</div><h3>No withdraw</h3><p>The contract holds exactly the ETH that backs the outstanding supply. There is no function to drain it.</p></article>
+      <article class="cell"><div class="n">04</div><h3>Sell any time</h3><p>The curve buys back at the same price it sells, so you are never locked in a position.</p></article>
+    </div>
+  </section>
+</main>
+
+<footer class="site-foot">
+  <div class="site-foot-in">
+    <a class="logo" href="index.html"><b>Talk</b><span>Messaging</span></a>
+    <span>Settlement in ETH · token $TALK</span>
+    <span class="foot-right" id="curveAddr">curve not configured</span>
+  </div>
+</footer>
+
+<div id="log"></div>
+
+<script src="config.js"></script>
+<script src="curve.js"></script>
+</body>
+</html>
