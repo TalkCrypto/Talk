@@ -139,9 +139,8 @@ const els = {};
 "passAddr","passPrice","passCur","passDesc","passOpen","passRule","passVig","passStub","passBar","passKey",
  "wzDots","wzLbl","wzOpen","wzOpenHint","wzRule","wzPrice","wzPriceVal","wzPresets","wzSim",
  "wzBack","wzNext","convs","msgs","threadTitle","threadMeta","peerAv","composer","text","priceTag",
- "btnSend","threadActions","composerHint","log","cfgToken","cfgInbox","cfgFrom","btnCfg",
- "socials","stBal","stBalSub","stMsgs","stMsgsSub","stEscrow","stEscrowSub","stEarned",
- "stEarnedSub","footMeta","heroCta","heroHow"]
+ "btnSend","threadActions","composerHint","log",
+ "meAv","meName","meSub","btnInbox","btnInbox2","btnCloseInbox","inboxModal","search","newTo","footMeta"]
   .forEach(k => els[k] = $(k));
 
 function log(msg, kind = "") {
@@ -378,30 +377,21 @@ function renderSocials() {
 function renderHeader() {
   if (els.addr) els.addr.innerHTML = S.account ? `<b>${short(S.account)}</b>` : "not connected";
   if (els.bal) els.bal.innerHTML = S.account ? `<b>${compact(S.balance)}</b> ${SYMBOL}` : "—";
+  if (els.meName) els.meName.textContent = S.account ? short(S.account) : "Your inbox";
+  if (els.meAv) els.meAv.textContent = S.account ? S.account.slice(2, 4).toUpperCase() : "·";
 }
 
 function renderStats() {
-  const st = S.stats;
-  if (!S.account) {
-    [["stBal", "—"], ["stMsgs", "—"], ["stEscrow", "—"], ["stEarned", "—"]]
-      .forEach(([k, v]) => { if (els[k]) els[k].textContent = v; });
-    return;
-  }
-  const set = (k, v) => { if (els[k]) els[k].innerHTML = v; };
-  set("stBal", compact(S.balance) + " <small>" + SYMBOL + "</small>");
-  set("stMsgs", String(st.total) + " <small>msj</small>");
-  set("stEscrow", compact(st.escrowIn + st.escrowOut) + " <small>" + SYMBOL + "</small>");
-  set("stEarned", compact(st.earned) + " <small>" + SYMBOL + "</small>");
+  if (!els.meSub) return;
+  if (!S.account) { els.meSub.textContent = "not connected"; return; }
 
-  if (els.stBalSub) els.stBalSub.textContent = S.me && S.me.registered ? "inbox active" : "inbox not active";
-  if (els.stMsgsSub) els.stMsgsSub.textContent = st.sent + " enviados · " + st.received + " recibidos";
-  if (els.stEscrowSub) {
-    const parts = [];
-    if (st.escrowIn > 0n) parts.push("incoming " + fmt(st.escrowIn, { sym: false }));
-    if (st.escrowOut > 0n) parts.push("outgoing " + fmt(st.escrowOut, { sym: false }));
-    els.stEscrowSub.textContent = parts.length ? parts.join(" · ") : "nothing held";
-  }
-  if (els.stEarnedSub) els.stEarnedSub.textContent = st.contacts + " contacts · " + (S.feeBps / 100) + "% fee";
+  const st = S.stats;
+  const bits = [];
+  if (S.me && S.me.registered) bits.push(S.me.price > 0n ? fmt(S.me.price) + " per message" : "free to write");
+  else bits.push("inbox not set up");
+  if (st.total) bits.push(st.total + (st.total === 1 ? " message" : " messages"));
+  if (st.contacts) bits.push(st.contacts + (st.contacts === 1 ? " contact" : " contacts"));
+  els.meSub.textContent = bits.join(" · ");
 }
 
 /* ------------------------------ the wizard ------------------------------ */
@@ -549,11 +539,7 @@ function renderPass(v, live) {
 }
 
 function renderBox() {
-  if (els.footMeta) {
-    els.footMeta.textContent = CFG.inbox
-      ? "contract " + short(CFG.inbox) + " · not audited"
-      : "not audited";
-  }
+  if (els.footMeta) els.footMeta.textContent = "Your key never leaves this device.";
 
   if (!S.me) {
     renderPass({ registered: false, open: false, rule: 1, price: 0n }, false);
@@ -576,19 +562,42 @@ function renderBox() {
 
 function renderConvs() {
   if (!els.convs) return;
-  if (!S.convs.length) { els.convs.innerHTML = '<div class="empty">nothing yet</div>'; return; }
-  els.convs.innerHTML = S.convs.map(c => {
+  const q = (S.filter || "").toLowerCase();
+  const list = S.convs.filter(c => !q || c.address.toLowerCase().includes(q));
+
+  if (!list.length) {
+    els.convs.innerHTML = `<div class="empty-side">${S.convs.length ? "No matches" : "No conversations yet"}</div>`;
+    return;
+  }
+
+  els.convs.innerHTML = list.map(c => {
     const on = S.active && S.active.toLowerCase() === c.address ? " on" : "";
-    const pv = c.preview ? esc(c.preview.slice(0, 44)) : "· encrypted ·";
-    const tag = c.pending ? ' <span class="tag pending">payment</span>' : "";
-    return `<div class="conv${on}" data-a="${c.address}">
-      <div class="av">${c.address.slice(2, 4).toUpperCase()}</div>
+    const pv = c.preview ? esc(c.preview.slice(0, 60)) : "Encrypted message";
+
+    let last = null;
+    for (let i = S.all.length - 1; i >= 0; i--) {
+      const m = S.all[i];
+      if (m.from.toLowerCase() === c.address || m.to.toLowerCase() === c.address) { last = m; break; }
+    }
+    const ts = last ? tsOf(last) : null;
+    const badge = c.pending ? '<span class="badge-dot">1</span>' : "";
+
+    return `<div class="chat-row${on}" data-a="${c.address}">
+      <div class="avatar sm">${c.address.slice(2, 4).toUpperCase()}</div>
       <div class="min">
-        <div class="who">${short(c.address)}${tag}</div>
-        <div class="pv">${pv}</div>
-      </div></div>`;
+        <div class="row-top">
+          <span class="row-name">${short(c.address)}</span>
+          <span class="row-time">${ts ? hhmm(ts) : ""}</span>
+        </div>
+        <div class="row-sub">
+          <span class="row-pv">${pv}</span>
+          ${badge}
+        </div>
+      </div>
+    </div>`;
   }).join("");
-  els.convs.querySelectorAll(".conv").forEach(el => el.onclick = () => openThread(el.dataset.a));
+
+  els.convs.querySelectorAll(".chat-row").forEach(el => el.onclick = () => openThread(el.dataset.a));
 }
 
 /* ---- block timestamps (cached) ---- */
@@ -623,8 +632,11 @@ function renderThread() {
     if (els.threadTitle) els.threadTitle.textContent = "Conversation";
     if (els.threadMeta) els.threadMeta.textContent = "pick someone to write to";
     if (els.peerAv) els.peerAv.textContent = "—";
-    els.msgs.innerHTML = '<div class="empty">pick a conversation</div>';
+    els.msgs.innerHTML = `<div class="empty-chat">
+      <div class="empty-ic"><svg viewBox="0 0 24 24" width="26" height="26"><path fill="currentColor" d="M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"/></svg></div>
+      <p>Pick a conversation, or start a new one below.</p></div>`;
     if (els.composer) els.composer.hidden = true;
+    if (els.threadActions) els.threadActions.innerHTML = "";
     return;
   }
 
@@ -636,12 +648,14 @@ function renderThread() {
   if (els.threadTitle) els.threadTitle.textContent = short(S.active);
   if (els.threadMeta) {
     els.threadMeta.textContent = !peer || !peer.registered
-      ? "inbox inactive"
-      : isContact ? "contact · free to write" : peer.open ? "open inbox" : "charges " + fmt(peer.price);
+      ? "no inbox yet"
+      : isContact ? "contact — free to write"
+      : peer.open ? "open inbox"
+      : fmt(peer.price) + " per message";
   }
 
   if (!S.msgs.length) {
-    els.msgs.innerHTML = '<div class="empty">no messages yet · write the first one</div>';
+    els.msgs.innerHTML = `<div class="empty-chat"><p>No messages yet. Say hello.</p></div>`;
   } else {
     const me = S.account.toLowerCase();
     const groups = [];
@@ -658,29 +672,30 @@ function renderThread() {
       const t0 = tsOf(first);
       if (t0) {
         const k = dayKey(t0);
-        if (k !== lastDay) { html += `<div class="day"><span>${dayLabel(t0)}</span></div>`; lastDay = k; }
+        if (k !== lastDay) { html += `<div class="day-chip"><span>${dayLabel(t0)}</span></div>`; lastDay = k; }
       }
 
-      const parts = [];
-      g.items.forEach((m, i) => {
+      const bubbles = g.items.map((m, i) => {
         const txt = m.plain !== undefined ? m.plain : (S.keyPair ? unseal(m.ct, peerKey) : null);
-        parts.push(txt !== null
-          ? `<div class="bub">${esc(txt)}</div>`
-          : `<div class="bub locked">locked · ${strip0x(m.ct).length / 2} B</div>`);
+        const t = tsOf(m);
+        const isLast = i === g.items.length - 1;
+        const stamp = (t && isLast) ? `<span class="t">${hhmm(t)}</span>` : "";
 
+        const body = txt !== null
+          ? `<div class="bubble">${esc(txt)}${stamp}</div>`
+          : `<div class="bubble locked">locked · ${strip0x(m.ct).length / 2} B${stamp}</div>`;
+
+        let chip = "";
         const p = S.payments.get(m.paymentId);
         if (p) {
           const cls = p.status === 1 ? "pending" : p.status === 2 ? "settled" : "refunded";
-          parts.push(`<span class="paychip ${cls}">${fmt(p.amount)} · ${STATUS_LABEL[p.status]}</span>`);
+          chip = `<span class="paychip ${cls}">${fmt(p.amount)} · ${STATUS_LABEL[p.status]}</span>`;
         }
-        if (i === g.items.length - 1) {
-          const t = tsOf(m);
-          if (t) parts.push(`<div class="bub-meta">${hhmm(t)}</div>`);
-        }
-      });
+        return body + chip;
+      }).join("");
 
       const av = g.out ? "" : `<div class="av">${S.active.slice(2, 4).toUpperCase()}</div>`;
-      html += `<div class="grp ${g.out ? "mine" : "theirs"}">${av}<div class="stack">${parts.join("")}</div></div>`;
+      html += `<div class="grp ${g.out ? "out" : "in"}">${av}<div class="stack">${bubbles}</div></div>`;
     }
     els.msgs.innerHTML = html;
   }
@@ -1087,6 +1102,33 @@ function initWizard() {
   };
 }
 
+function initShell() {
+  const openInbox = () => { if (els.inboxModal) els.inboxModal.hidden = false; };
+  const closeInbox = () => { if (els.inboxModal) els.inboxModal.hidden = true; };
+
+  [els.btnInbox, els.btnInbox2].forEach(b => b && b.addEventListener("click", openInbox));
+  els.btnCloseInbox?.addEventListener("click", closeInbox);
+  els.inboxModal?.addEventListener("click", e => { if (e.target === els.inboxModal) closeInbox(); });
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape" && els.inboxModal && !els.inboxModal.hidden) closeInbox();
+  });
+
+  els.search?.addEventListener("input", e => {
+    S.filter = e.target.value;
+    renderConvs();
+  });
+
+  els.newTo?.addEventListener("keydown", e => {
+    if (e.key !== "Enter") return;
+    const v = e.target.value.trim();
+    if (!/^0x[0-9a-fA-F]{40}$/.test(v)) { log("That doesn't look like a wallet address.", "err"); return; }
+    e.target.value = "";
+    S.filter = "";
+    if (els.search) els.search.value = "";
+    openThread(v);
+  });
+}
+
 function init() {
   renderSocials();
   renderHeader();
@@ -1094,6 +1136,7 @@ function init() {
   initConfigPanel();
   initHero();
   initWizard();
+  initShell();
   if (new URLSearchParams(location.search).has("demo")) { setupDemo(); return; }
   if (els.setupBanner) els.setupBanner.hidden = !!(CFG.inbox && CFG.token);
   if (els.btnConnect) els.btnConnect.onclick = connect;

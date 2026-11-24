@@ -4,284 +4,239 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#000000">
-<title>Talk — private messages between wallets</title>
-<meta name="description" content="Wallet-to-wallet encrypted messages with a 72-hour escrow. Paid in $TALK.">
+<title>Talk</title>
+<meta name="description" content="Private messages between wallets.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 </head>
-<body>
+<body class="app-body">
 
-<header>
-  <div class="wrap">
+<header class="topbar">
+  <div class="topbar-in">
     <div class="brand"><span class="mark">T</span> Talk</div>
-    <nav class="nav">
-      <a href="#mail" class="on">Dashboard</a>
-      <a href="#mail">Inbox</a>
-      <a href="deploy.html">Deploy</a>
-    </nav>
-    <div class="grow"></div>
     <span class="chip" id="bal">—</span>
+    <div class="grow"></div>
+    <button class="icon-btn" id="btnInbox" aria-label="Your inbox" title="Your inbox">
+      <svg viewBox="0 0 24 24" width="15" height="15"><path fill="currentColor" d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0 2c-4.4 0-8 2.2-8 5v1h16v-1c0-2.8-3.6-5-8-5z"/></svg>
+    </button>
     <span class="chip" id="addr">not connected</span>
-    <button id="btnConnect" class="solid">Connect</button>
+    <button id="btnConnect" class="solid sm">Connect</button>
   </div>
 </header>
 
-<!-- ================= HERO ================= -->
-<section class="hero">
-  <div class="wrap">
-    <div class="eyebrow">72h escrow · encrypted in your browser</div>
-    <h1>Private messages<br><em>that pay for themselves.</em></h1>
-    <p>
-      Write to any wallet. If they don't know you, your payment waits inside the contract:
-      it clears when they reply, and you get it back when they don't. Nobody else can read it.
-    </p>
-    <div class="actions">
-      <button class="solid" id="heroCta">Open my inbox</button>
-      <button id="heroHow">How it works</button>
-    </div>
-    <div class="socials" id="socials"></div>
-  </div>
-</section>
-
-<!-- ================= STATS ================= -->
-<section class="stats-band"><div class="wrap stats">
-  <div class="stat">
-    <div class="k">Balance</div>
-    <div class="v" id="stBal">—</div>
-    <div class="sub" id="stBalSub">$TALK</div>
-  </div>
-  <div class="stat">
-    <div class="k">Messages</div>
-    <div class="v" id="stMsgs">—</div>
-    <div class="sub" id="stMsgsSub">sent · received</div>
-  </div>
-  <div class="stat">
-    <div class="k">In escrow</div>
-    <div class="v" id="stEscrow">—</div>
-    <div class="sub" id="stEscrowSub">waiting on a reply</div>
-  </div>
-  <div class="stat">
-    <div class="k">Earned</div>
-    <div class="v" id="stEarned">—</div>
-    <div class="sub" id="stEarnedSub">net of fee</div>
-  </div>
-</div></section>
-
-<main class="wrap">
+<main class="shell">
   <div class="banner" id="setupBanner" hidden>
-    Contracts aren't configured yet. <a href="deploy.html">Deploy $TALK and TalkInbox →</a>
+    Talk isn't set up yet. <a href="deploy.html">Deploy the contracts →</a>
   </div>
 
-  <div class="grid" id="mail">
-    <!-- ---------- left column ---------- -->
-    <div>
-      <section class="sheet" id="boxSheet">
-        <div class="sheet-head">
-          <h2 class="sheet-title">My inbox</h2>
-          <div class="grow"></div>
-          <span class="sheet-badge" id="boxBadge">not active</span>
+  <div class="app" id="app">
+    <!-- ---------------- conversations ---------------- -->
+    <aside class="side">
+      <div class="side-top">
+        <div class="avatar" id="meAv">—</div>
+        <div class="min">
+          <div class="me-name" id="meName">Your inbox</div>
+          <div class="me-sub" id="meSub">not connected</div>
         </div>
+        <button class="icon-btn" id="btnInbox2" aria-label="Inbox settings" title="Inbox settings">
+          <svg viewBox="0 0 24 24" width="15" height="15"><path fill="currentColor" d="M12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7zm7.4-2.1.1-.9-.1-.9 2-1.6-1.9-3.3-2.4 1a7.5 7.5 0 0 0-1.6-.9l-.3-2.5H11l-.3 2.5c-.6.2-1.1.5-1.6.9l-2.4-1L4.8 10l2 1.6-.1.9.1.9-2 1.6 1.9 3.3 2.4-1c.5.4 1 .7 1.6.9l.3 2.5h3.9l.3-2.5c.6-.2 1.1-.5 1.6-.9l2.4 1 1.9-3.3z"/></svg>
+        </button>
+      </div>
 
-        <!-- the inbox, literally: a pass -->
-        <div class="pass" id="pass">
-          <div class="pass-body">
-            <div class="pass-top">
-              <span class="pass-kicker">access pass</span>
-              <span class="pass-addr mono" id="passAddr">—</span>
-            </div>
+      <div class="search">
+        <input id="search" placeholder="Search" autocomplete="off">
+      </div>
 
-            <div class="pass-price">
-              <span class="pass-num" id="passPrice">—</span>
-              <span class="pass-cur" id="passCur">TALK</span>
-            </div>
-            <p class="pass-desc" id="passDesc">per message from a wallet you don't know</p>
+      <div class="chats" id="convs"></div>
 
-            <dl class="pass-rows">
-              <div><dt>who gets in</dt><dd id="passOpen">—</dd></div>
-              <div><dt>if you reply</dt><dd id="passRule">—</dd></div>
-              <div><dt>window</dt><dd id="passVig">72 h</dd></div>
-            </dl>
-          </div>
+      <div class="side-foot">
+        <input id="newTo" placeholder="New chat — paste an address" autocomplete="off" spellcheck="false">
+      </div>
+    </aside>
 
-          <div class="pass-stub">
-            <span class="pass-stub-lbl">price</span>
-            <span class="pass-stub-num" id="passStub">—</span>
-            <div class="barcode" id="passBar"></div>
-            <span class="pass-serial mono" id="passKey">····</span>
-          </div>
-        </div>
-
-        <div class="sheet-actions" id="boxActions" hidden>
-          <button id="btnEdit" class="btn-line">Edit pass</button>
-        </div>
-
-        <!-- ---------- wizard ---------- -->
-        <div id="boxForm" hidden>
-
-            <div class="wz-top">
-              <div class="wz-dots" id="wzDots">
-                <span class="wz-dot on"></span><span class="wz-dot"></span><span class="wz-dot"></span>
-              </div>
-              <span class="wz-lbl" id="wzLbl">step 1 of 3</span>
-            </div>
-
-            <!-- step 1 -->
-            <div class="wz-page" data-p="1">
-              <h3 class="wz-h">Who can write to you?</h3>
-              <div class="choices" id="wzOpen">
-                <button class="choice" data-v="0">
-                  <span class="mark"></span>
-                  <span class="body">
-                    <b>Contacts only</b>
-                    <small>Strangers pay to get in. Keeps the noise out.</small>
-                  </span>
-                </button>
-                <button class="choice" data-v="1">
-                  <span class="mark"></span>
-                  <span class="body">
-                    <b>Anyone, free</b>
-                    <small>Open inbox. Best if you're a creator and want to be reachable.</small>
-                  </span>
-                </button>
-              </div>
-              <div class="hint" id="wzOpenHint"></div>
-            </div>
-
-            <!-- step 2 -->
-            <div class="wz-page" data-p="2" hidden>
-              <h3 class="wz-h">When you reply, the payment…</h3>
-              <div class="choices" id="wzRule">
-                <button class="choice" data-v="0">
-                  <span class="mark"></span>
-                  <span class="body">
-                    <b>goes back</b>
-                    <small>You answer for free. You only get paid if you stay silent.</small>
-                    <span class="flow"><i class="a" style="width:100%"></i></span>
-                    <span class="flow-lbl">sender 100%</span>
-                  </span>
-                </button>
-                <button class="choice" data-v="1">
-                  <span class="mark"></span>
-                  <span class="body">
-                    <b>I keep it</b>
-                    <small>You keep the payment minus Talk's 5%.</small>
-                    <span class="flow"><i class="b" style="width:95%"></i></span>
-                    <span class="flow-lbl">you 95% · fee 5%</span>
-                  </span>
-                </button>
-                <button class="choice" data-v="2">
-                  <span class="mark"></span>
-                  <span class="body">
-                    <b>split 50/50</b>
-                    <small>Half goes back, you keep the other half minus 5%.</small>
-                    <span class="flow"><i class="a" style="width:50%"></i><i class="b" style="width:45%"></i></span>
-                    <span class="flow-lbl">sender 50% · you 45% · fee 5%</span>
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            <!-- step 3 -->
-            <div class="wz-page" data-p="3" hidden>
-              <h3 class="wz-h">Price for strangers</h3>
-
-              <div class="price-row">
-                <input id="wzPrice" type="range" min="0" max="500" step="5" value="120">
-                <div class="price-val"><b id="wzPriceVal">120</b><span>TALK</span></div>
-              </div>
-
-              <div class="presets" id="wzPresets">
-                <button data-p="0">free</button>
-                <button data-p="50">50</button>
-                <button data-p="120">120</button>
-                <button data-p="250">250</button>
-              </div>
-
-              <div class="sim">
-                <div class="sim-h">
-                  <span class="tiny mono">how a stranger sees you</span>
-                </div>
-                <div class="sim-body" id="wzSim"></div>
-              </div>
-            </div>
-
-            <div class="wz-nav">
-              <button id="wzBack" class="sm" disabled>Back</button>
-              <div class="grow"></div>
-              <button id="wzNext" class="solid sm">Next</button>
-            </div>
-        </div>
-      </section>
-
-      <section class="block">
-        <div class="block-head"><h2 class="sheet-title">Conversations</h2></div>
-        <div id="convs"><div class="empty">nothing yet</div></div>
-      </section>
-
-      <details class="block block-cfg">
-        <summary>Deployment settings</summary>
-        <div class="block-body">
-          <label>Token $TALK</label>
-          <input id="cfgToken" class="mono" placeholder="0x…">
-          <label>TalkInbox</label>
-          <input id="cfgInbox" class="mono" placeholder="0x…">
-          <label>Deploy block</label>
-          <input id="cfgFrom" class="mono" placeholder="122000000">
-          <button id="btnCfg" style="width:100%;margin-top:14px">Save and reload</button>
-        </div>
-      </details>
-    </div>
-
-    <!-- ---------- right column ---------- -->
-    <section class="card thread">
-      <div class="thread-head">
-        <div class="peer">
-          <div class="avatar lg" id="peerAv">—</div>
-          <div class="peer-txt">
-            <div class="peer-name" id="threadTitle">Conversation</div>
-            <div class="peer-sub" id="threadMeta">pick someone to write to</div>
-          </div>
+    <!-- ---------------- chat ---------------- -->
+    <section class="chat">
+      <header class="chat-top">
+        <div class="avatar sm" id="peerAv">—</div>
+        <div class="min">
+          <div class="chat-name" id="threadTitle">Conversation</div>
+          <div class="chat-sub" id="threadMeta">pick someone to write to</div>
         </div>
         <div class="grow"></div>
-        <span class="pill-e2e" title="encrypted in your browser">
-          <svg viewBox="0 0 24 24" width="11" height="11"><path fill="currentColor" d="M12 1a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-1V6a5 5 0 0 0-5-5zm0 2a3 3 0 0 1 3 3v3H9V6a3 3 0 0 1 3-3zm0 10a2 2 0 0 1 1 3.7V19h-2v-2.3A2 2 0 0 1 12 13z"/></svg>
+        <span class="pill-e2e" title="End-to-end encrypted">
+          <svg viewBox="0 0 24 24" width="10" height="10"><path fill="currentColor" d="M12 1a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-1V6a5 5 0 0 0-5-5zm0 2a3 3 0 0 1 3 3v3H9V6a3 3 0 0 1 3-3z"/></svg>
           encrypted
         </span>
-      </div>
+      </header>
 
       <div id="msgs" class="msgs">
-        <div class="empty">pick a conversation</div>
-      </div>
-
-      <div id="composer" class="composer" hidden>
-        <div class="thread-actions" id="threadActions"></div>
-
-        <div class="composer-box">
-          <textarea id="text" rows="1" placeholder="Write a message…"></textarea>
-          <div class="composer-bar">
-            <span class="cost"><i></i><b id="priceTag">—</b></span>
-            <div class="grow"></div>
-            <button id="btnSend" class="send" aria-label="Send">
-              <svg viewBox="0 0 24 24" width="15" height="15"><path fill="currentColor" d="M12 3.2 19 11h-4.6v9.8H9.6V11H5z"/></svg>
-            </button>
+        <div class="empty-chat">
+          <div class="empty-ic">
+            <svg viewBox="0 0 24 24" width="26" height="26"><path fill="currentColor" d="M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"/></svg>
           </div>
+          <p>Pick a conversation, or start a new one below.</p>
         </div>
-
-        <div class="hint" id="composerHint"></div>
       </div>
+
+      <div class="thread-actions" id="threadActions"></div>
+
+      <footer class="composer" id="composer" hidden>
+        <div class="composer-bar">
+          <textarea id="text" rows="1" placeholder="Message" autocomplete="off"></textarea>
+          <button id="btnSend" class="send" aria-label="Send">
+            <svg viewBox="0 0 24 24" width="17" height="17"><path fill="currentColor" d="M3.4 20.6 21.8 12 3.4 3.4l.1 6.9 12 1.7-12 1.7z"/></svg>
+          </button>
+        </div>
+        <div class="composer-cost"><span id="composerHint"></span><div class="grow"></div><b id="priceTag">—</b></div>
+      </footer>
     </section>
   </div>
 </main>
 
-<footer>
-  <div class="wrap">
-    <div class="brand"><span class="mark">T</span> Talk</div>
-    <div class="grow"></div>
-    <span class="tiny mono" id="footMeta">not audited</span>
+<!-- ---------------- your inbox ---------------- -->
+<div class="modal" id="inboxModal" hidden>
+  <div class="modal-card">
+    <div class="modal-head">
+      <h2 class="sheet-title">Your inbox</h2>
+      <div class="grow"></div>
+      <button class="icon-btn" id="btnCloseInbox" aria-label="Close">
+        <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L10.6 13.4 4.3 19.7 2.9 18.3 9.2 12 2.9 5.7 4.3 4.3l6.3 6.3 6.3-6.3z"/></svg>
+      </button>
+    </div>
+
+    <div class="sheet" id="boxSheet">
+      <div class="sheet-head">
+        <span class="sheet-badge" id="boxBadge">not active</span>
+      </div>
+
+      <div class="pass" id="pass">
+        <div class="pass-body">
+          <div class="pass-top">
+            <span class="pass-kicker">access pass</span>
+            <span class="pass-addr mono" id="passAddr">—</span>
+          </div>
+
+          <div class="pass-price">
+            <span class="pass-num" id="passPrice">—</span>
+            <span class="pass-cur" id="passCur">TALK</span>
+          </div>
+          <p class="pass-desc" id="passDesc">per message from a wallet you don't know</p>
+
+          <dl class="pass-rows">
+            <div><dt>who gets in</dt><dd id="passOpen">—</dd></div>
+            <div><dt>if you reply</dt><dd id="passRule">—</dd></div>
+            <div><dt>window</dt><dd id="passVig">72 h</dd></div>
+          </dl>
+        </div>
+
+        <div class="pass-stub">
+          <span class="pass-stub-lbl">price</span>
+          <span class="pass-stub-num" id="passStub">—</span>
+          <div class="barcode" id="passBar"></div>
+          <span class="pass-serial mono" id="passKey">····</span>
+        </div>
+      </div>
+
+      <div class="sheet-actions" id="boxActions" hidden>
+        <button id="btnEdit" class="btn-line">Edit pass</button>
+      </div>
+
+      <div id="boxForm" hidden>
+        <div class="wz-top">
+          <div class="wz-dots" id="wzDots">
+            <span class="wz-dot on"></span><span class="wz-dot"></span><span class="wz-dot"></span>
+          </div>
+          <span class="wz-lbl" id="wzLbl">step 1 of 3</span>
+        </div>
+
+        <div class="wz-page" data-p="1">
+          <h3 class="wz-h">Who can write to you?</h3>
+          <div class="choices" id="wzOpen">
+            <button class="choice" data-v="0">
+              <span class="mark"></span>
+              <span class="body">
+                <b>Contacts only</b>
+                <small>Strangers pay to get in. Keeps the noise out.</small>
+              </span>
+            </button>
+            <button class="choice" data-v="1">
+              <span class="mark"></span>
+              <span class="body">
+                <b>Anyone, free</b>
+                <small>Open inbox. Best if you're a creator and want to be reachable.</small>
+              </span>
+            </button>
+          </div>
+          <div class="hint" id="wzOpenHint"></div>
+        </div>
+
+        <div class="wz-page" data-p="2" hidden>
+          <h3 class="wz-h">When you reply, the payment…</h3>
+          <div class="choices" id="wzRule">
+            <button class="choice" data-v="0">
+              <span class="mark"></span>
+              <span class="body">
+                <b>goes back</b>
+                <small>You answer for free. You only get paid if you stay silent.</small>
+                <span class="flow"><i class="a" style="width:100%"></i></span>
+                <span class="flow-lbl">sender 100%</span>
+              </span>
+            </button>
+            <button class="choice" data-v="1">
+              <span class="mark"></span>
+              <span class="body">
+                <b>I keep it</b>
+                <small>You keep the payment minus Talk's 5%.</small>
+                <span class="flow"><i class="b" style="width:95%"></i></span>
+                <span class="flow-lbl">you 95% · fee 5%</span>
+              </span>
+            </button>
+            <button class="choice" data-v="2">
+              <span class="mark"></span>
+              <span class="body">
+                <b>split 50/50</b>
+                <small>Half goes back, you keep the other half minus 5%.</small>
+                <span class="flow"><i class="a" style="width:50%"></i><i class="b" style="width:45%"></i></span>
+                <span class="flow-lbl">sender 50% · you 45% · fee 5%</span>
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <div class="wz-page" data-p="3" hidden>
+          <h3 class="wz-h">Price for strangers</h3>
+
+          <div class="price-row">
+            <input id="wzPrice" type="range" min="0" max="500" step="5" value="120">
+            <div class="price-val"><b id="wzPriceVal">120</b><span>TALK</span></div>
+          </div>
+
+          <div class="presets" id="wzPresets">
+            <button data-p="0">free</button>
+            <button data-p="50">50</button>
+            <button data-p="120">120</button>
+            <button data-p="250">250</button>
+          </div>
+
+          <div class="sim">
+            <div class="sim-h"><span class="tiny mono">how a stranger sees you</span></div>
+            <div class="sim-body" id="wzSim"></div>
+          </div>
+        </div>
+
+        <div class="wz-nav">
+          <button id="wzBack" class="sm" disabled>Back</button>
+          <div class="grow"></div>
+          <button id="wzNext" class="solid sm">Next</button>
+        </div>
+      </div>
+    </div>
+
+    <p class="modal-note" id="footMeta">not audited</p>
   </div>
-</footer>
+</div>
 
 <div id="log"></div>
 
