@@ -4,41 +4,52 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#000000">
-<title>Talk — private messages between wallets</title>
+<title>Talk — say it privately</title>
 <meta name="description" content="Messaging for wallets. Set a price, get paid to reply, and nobody reads what you write.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..700;1,400..600&family=Manrope:wght@300..700&family=JetBrains+Mono:wght@300..600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="landing.css">
 </head>
-<body class="landing-body">
+<body>
 
-<header class="site-head">
-  <div class="site-head-in">
-    <a class="brand" href="index.html"><span class="mark">T</span> TALK</a>
-    <nav class="site-nav">
-      <a href="#product">Product</a>
-      <a href="app.html">Dashboard</a>
-      <a href="#tokenomics">Token</a>
-    </nav>
-    <div class="grow"></div>
-    <div class="head-socials" id="headSocials"></div>
-    <a class="cta-line" href="app.html">OPEN TALK ↗</a>
+<canvas id="field"></canvas>
+<div class="vignette"></div>
+<div class="grain"></div>
+<div class="cursor-dot"></div>
+<div class="cursor-ring"></div>
+
+<!-- ---------------------------------------------------------------- HUD -->
+<nav class="hud-top">
+  <div class="hud-left">
+    <span class="dot"></span>
+    <a href="index.html" class="hud-brand">TALK <span>· MESSAGING</span></a>
   </div>
-</header>
+
+  <div class="hud-nav">
+    <a href="#product">PRODUCT</a>
+    <a href="#tokenomics">TOKEN</a>
+    <a href="#policy">POLICY</a>
+    <a href="#faq">FAQ</a>
+  </div>
+
+  <div class="hud-right">
+    <div class="hud-socials" id="hudSocials"></div>
+    <a class="hud-cta" href="app.html">OPEN APP ↗</a>
+  </div>
+</nav>
 
 <main>
 
-  <!-- ------------------------------ hero ------------------------------ -->
-  <section class="hero-grid">
-    <div class="hero-copy">
-      <div class="kicker">PRIVATE MESSAGING · PAID IN $TALK</div>
-      <h1>Say it<br><em>privately.</em></h1>
-      <p class="sub">
-        Messaging for wallets. Write to anyone, set your price, and let the payment wait in the
-        contract until you answer. Nobody reads it but the two of you.
+  <!-- ------------------------------------------------------------- hero -->
+  <section class="hero">
+    <div class="hero-in">
+      <div class="kicker">PRIVATE MESSAGING · PAID IN $TALK · LIVE</div>
+      <h1>Say it<br><em>privately</em>.</h1>
+      <p class="lead">
+        There is a machine for talking to wallets where a message costs something to send
+        and nothing to answer. It runs on chain, it holds no keys, and it reads nothing.
       </p>
-      <a class="cta-solid" href="app.html">LAUNCH APP <span>↗</span></a>
 
       <div class="hero-stats">
         <span><b>0</b> accounts</span>
@@ -47,20 +58,17 @@
         <span><b>$TALK</b> only</span>
       </div>
 
-      <div class="hero-meta">
-        <span class="num">01</span><span class="of">/ 02</span>
-        <i class="bar on"></i><i class="bar"></i>
+      <div class="hero-ctas">
+        <a class="cta" href="app.html">LAUNCH APP ↗</a>
+        <a class="cta-ghost" href="#product">HOW IT WORKS ↓</a>
       </div>
     </div>
 
-    <div class="hero-art" aria-hidden="true">
-      <div class="art-frame">
-        <div class="art-bars" id="artBars"></div>
-      </div>
-    </div>
+    <div class="hero-word" aria-hidden="true">TALK</div>
+    <div class="scroll-hint"><span>SCROLL</span><i></i></div>
   </section>
 
-  <!-- ------------------------------ strap ------------------------------ -->
+  <!-- ------------------------------------------------------------ strap -->
   <div class="strap">
     <div class="strap-in">
       <span>PRIVATE MESSAGING</span><i>/</i>
@@ -69,100 +77,165 @@
       <span>NO ACCOUNTS</span><i>/</i>
       <span>NO SPAM</span><i>/</i>
       <span>72H ESCROW</span><i>/</i>
+      <span>NO WITHDRAW</span><i>/</i>
       <span>PRIVATE MESSAGING</span><i>/</i>
-      <span>PAID IN $TALK</span>
+      <span>PAID IN $TALK</span><i>/</i>
+      <span>ENCRYPTED IN YOUR BROWSER</span><i>/</i>
     </div>
   </div>
 
-  <!-- --------------------------- index band --------------------------- -->
-  <nav class="index-band">
-    <div class="index-band-in">
-      <a href="#product">01. PRODUCT</a>
-      <i>—</i>
-      <a href="#tokenomics">02. TOKEN</a>
-      <i>—</i>
-      <a href="#policy">03. POLICY</a>
-      <i>—</i>
-      <a href="#faq">04. FAQ</a>
-    </div>
-  </nav>
-
-  <!-- --------------------------- 01 product --------------------------- -->
+  <!-- --------------------------------------------------- 01 the product -->
   <section class="band" id="product">
     <div class="band-in">
-      <div class="sec-kicker">01 / THE PRODUCT</div>
-      <h2>A quieter inbox.</h2>
-      <p class="sec-sub">
-        An inbox that costs something to enter. Not to punish anyone — to make the message matter.
-      </p>
+      <div class="sec-head reveal">
+        <div class="kicker">01 / THE PRODUCT</div>
+        <h2>A quieter inbox.</h2>
+        <p class="sec-sub">
+          An inbox that costs something to enter. Not to punish anyone — to make the message matter.
+        </p>
+      </div>
 
+      <!-- ventana del producto -->
+      <div class="frame reveal">
+        <div class="frame-bar">
+          <span class="fdot"></span><span class="fdot"></span><span class="fdot"></span>
+          <span class="furl">talk — inbox</span>
+          <span class="fstat"><i></i> encrypted</span>
+        </div>
+
+        <div class="frame-body">
+          <aside class="mini-side">
+            <div class="mini-me">
+              <span class="mav">9F</span>
+              <div><b>0x9f3c…4c6d</b><i>120 TALK per message</i></div>
+            </div>
+            <div class="mini-row on">
+              <span class="mav">4A</span>
+              <div><b>0x4a1e…7a9c</b><i>Sent. Ping me if anything looks off.</i></div>
+              <span class="mt">4:21</span>
+            </div>
+            <div class="mini-row">
+              <span class="mav">8B</span>
+              <div><b>0x8b2d…f6a8</b><i>Thanks — got it.</i></div>
+              <span class="mt">18:12</span>
+            </div>
+            <div class="mini-row">
+              <span class="mav">C2</span>
+              <div><b>0xc2aa…19e0</b><i>Encrypted message</i></div>
+              <span class="mt">Mon</span>
+            </div>
+          </aside>
+
+          <div class="mini-chat">
+            <div class="mini-top">
+              <span class="mav sm">4A</span>
+              <div><b>0x4a1e…7a9c</b><i>100 TALK per message</i></div>
+              <span class="mini-lock">encrypted</span>
+            </div>
+
+            <div class="mini-msgs">
+              <div class="mm-day">TODAY</div>
+              <div class="mm in">Hey — saw your token on pons. Still holding a slot for you.<span>4:12</span></div>
+              <div class="mm out">Perfect. Send the contract over and I'll read it tonight.<span>4:20</span></div>
+              <div class="mm in">Sent. Ping me if anything looks off.<span>4:21</span></div>
+              <div class="mm chip">100 TALK · in escrow</div>
+            </div>
+
+            <div class="mini-input">
+              <span>Message</span>
+              <i>↗</i>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="frame-note reveal">The dashboard: your inbox, the price, and what's waiting on your answer.</p>
       <div class="caps">
-        <article class="cap">
+        <article class="cap reveal">
           <span class="cap-n">01</span>
           <h3>Open your inbox</h3>
           <p>One free signature. No forms, no email, no password — your wallet is the account.</p>
         </article>
-        <article class="cap">
+        <article class="cap reveal">
           <span class="cap-n">02</span>
           <h3>Set your price</h3>
-          <p>Strangers pay to reach you. The people you already know write for free, always.</p>
+          <p>Strangers pay to reach you. The people you already replied to never pay again.</p>
         </article>
-        <article class="cap">
+        <article class="cap reveal">
           <span class="cap-n">03</span>
           <h3>Answer, and it settles</h3>
-          <p>Reply and keep the payment. Stay silent and it goes back to them — you never hold their money.</p>
+          <p>Reply and keep the payment. Stay silent and it goes back — you never hold their money.</p>
         </article>
-        <article class="cap">
+        <article class="cap reveal">
           <span class="cap-n">04</span>
-          <h3>Encrypted, always</h3>
-          <p>Messages are sealed on your device before they leave it. The chain stores bytes it cannot read.</p>
+          <h3>Sealed on your device</h3>
+          <p>Messages are encrypted before they leave. The chain stores bytes it cannot read.</p>
         </article>
       </div>
     </div>
   </section>
 
-  <!-- -------------------------- 02 tokenomics ------------------------- -->
-  <section class="band band-alt" id="tokenomics">
-    <div class="band-in">
-      <div class="sec-kicker">02 / TOKENOMICS</div>
-      <h2>One token. No games.</h2>
+  <!-- ------------------------------------------------------- interlude -->
+  <div class="interlude">
+    <div class="drift">
+      <div class="frag-pos" data-dp="0.05" style="left:44%;top:38%"><span class="frag verb" style="font-size:38px">pays</span></div>
+      <div class="frag-pos" data-dp="0.9" style="left:12%;top:24%"><span class="frag" style="font-size:46px">72 hours</span></div>
+      <div class="frag-pos" data-dp="0.62" style="left:70%;top:20%"><span class="frag t-r">escrow</span></div>
+      <div class="frag-pos" data-dp="0.35" style="left:24%;top:68%"><span class="frag t-w">no withdraw function</span></div>
+      <div class="frag-pos" data-dp="0.78" style="left:62%;top:72%"><span class="frag" style="font-size:32px">5%</span></div>
+      <div class="frag-pos" data-dp="0.5" style="left:8%;top:46%"><span class="frag t-w">signature · free</span></div>
+      <div class="frag-pos" data-dp="0.2" style="left:82%;top:52%"><span class="frag t-w">contacts · free forever</span></div>
+    </div>
+  </div>
 
-      <div class="tok-grid">
-        <div class="tok"><span class="tok-k">MAX SUPPLY</span><span class="tok-v">1,000,000,000</span><span class="tok-s">fixed at deploy, no mint</span></div>
-        <div class="tok"><span class="tok-k">TALK FEE</span><span class="tok-v">5%</span><span class="tok-s">of what you keep</span></div>
-        <div class="tok"><span class="tok-k">ESCROW</span><span class="tok-v">72 H</span><span class="tok-s">then anyone can refund</span></div>
-        <div class="tok"><span class="tok-k">ACCEPTED</span><span class="tok-v">$TALK</span><span class="tok-s">one token, nothing else</span></div>
+  <!-- ------------------------------------------------------ 02 tokenomics -->
+  <section class="band" id="tokenomics">
+    <div class="band-in">
+      <div class="sec-head reveal">
+        <div class="kicker">02 / TOKENOMICS</div>
+        <h2>One token. No games.</h2>
       </div>
 
-      <p class="sec-sub tok-note">
+      <div class="tok-grid">
+        <div class="tok reveal"><span class="tok-k">MAX SUPPLY</span><span class="tok-v">1,000,000,000</span><span class="tok-s">fixed at deploy, no mint</span></div>
+        <div class="tok reveal"><span class="tok-k">TALK FEE</span><span class="tok-v">5%</span><span class="tok-s">of what you keep</span></div>
+        <div class="tok reveal"><span class="tok-k">ESCROW</span><span class="tok-v">72 H</span><span class="tok-s">then anyone can refund</span></div>
+        <div class="tok reveal"><span class="tok-k">ACCEPTED</span><span class="tok-v">$TALK</span><span class="tok-s">one token, nothing else</span></div>
+      </div>
+
+      <p class="sec-sub note reveal">
         The fee only touches what the recipient keeps. Refunds pay nothing, and once you've replied
         you're contacts — those messages are free forever.
       </p>
     </div>
   </section>
 
-  <!-- ---------------------------- 03 policy --------------------------- -->
+  <!-- ---------------------------------------------------------- 03 policy -->
   <section class="band" id="policy">
     <div class="band-in">
-      <div class="sec-kicker">03 / THE POLICY</div>
-      <h2>What you're getting.</h2>
+      <div class="sec-head reveal">
+        <div class="kicker">03 / THE POLICY</div>
+        <h2>What you're getting.</h2>
+      </div>
 
       <div class="trust">
-        <div class="tr"><h4>PRIVACY</h4><p>No sign-up, no email, no telemetry. Keys stay on your device and there is no data to sell.</p></div>
-        <div class="tr"><h4>CUSTODY</h4><p>Your money never sits in our wallets. The contract holds it and releases it by rule, with no withdraw function.</p></div>
-        <div class="tr"><h4>RESPECT</h4><p>No spam, because reaching you costs something. No surprises, because the fee ships with the contract.</p></div>
-        <div class="tr"><h4>OPEN</h4><p>The source is private until launch. Once launched, it's revealed in full — repository and contracts, verifiable by anyone.</p></div>
+        <div class="tr reveal"><h4>PRIVACY</h4><p>No sign-up, no email, no telemetry. Keys stay on your device and there is no data to sell.</p></div>
+        <div class="tr reveal"><h4>CUSTODY</h4><p>Your money never sits in our wallets. The contract holds it and releases it by rule, with no withdraw function.</p></div>
+        <div class="tr reveal"><h4>RESPECT</h4><p>No spam, because reaching you costs something. No surprises, because the fee ships with the code.</p></div>
+        <div class="tr reveal"><h4>OPEN</h4><p>The source is private until launch. Once launched, it's revealed in full — repository and contracts, verifiable by anyone.</p></div>
       </div>
     </div>
   </section>
 
-  <!-- ------------------------------ 04 faq ---------------------------- -->
-  <section class="band band-alt" id="faq">
+  <!-- ------------------------------------------------------------- 04 faq -->
+  <section class="band" id="faq">
     <div class="band-in">
-      <div class="sec-kicker">04 / FAQ</div>
-      <h2>Questions.</h2>
+      <div class="sec-head reveal">
+        <div class="kicker">04 / FAQ</div>
+        <h2>Questions.</h2>
+      </div>
 
-      <div class="faq">
+      <div class="faq reveal">
         <details>
           <summary>Do I need to deposit anything to open an inbox?</summary>
           <p>No. Opening an inbox is a free signature — not a transaction. You only spend gas when you send or reply.</p>
@@ -173,11 +246,11 @@
         </details>
         <details>
           <summary>What happens if I never answer?</summary>
-          <p>After 72 hours the sender gets it back. Anyone can trigger the refund; you don't have to be online and we can't block it.</p>
+          <p>After 72 hours the sender gets it back. Anyone can trigger the refund — you don't have to be online and we can't block it.</p>
         </details>
         <details>
           <summary>Can you read my messages?</summary>
-          <p>No. They're encrypted on your device with a key derived from your signature. What reaches the chain is bytes nobody can open without your wallet.</p>
+          <p>No. They're sealed on your device with a key derived from your signature. What reaches the chain is bytes nobody can open without your wallet.</p>
         </details>
         <details>
           <summary>Is the token live?</summary>
@@ -187,54 +260,26 @@
     </div>
   </section>
 
-  <!-- ----------------------------- close ------------------------------ -->
+  <!-- ------------------------------------------------------------ close -->
   <section class="close">
     <div class="close-in">
-      <h2>Ready when you are.</h2>
-      <p>Open your inbox in about ten seconds.</p>
-      <a class="cta-solid" href="app.html">LAUNCH APP <span>↗</span></a>
+      <div class="kicker reveal">05 / OPEN</div>
+      <h2 class="reveal">Ready when<br>you are.</h2>
+      <p class="reveal">Open your inbox in about ten seconds.</p>
+      <a class="cta reveal" href="app.html">LAUNCH APP ↗</a>
     </div>
+    <div class="hero-word small" aria-hidden="true">TALK</div>
   </section>
 
 </main>
 
 <footer class="site-foot">
-  <div class="site-foot-in">
-    <a class="brand" href="index.html"><span class="mark">T</span> TALK</a>
-    <div class="grow"></div>
-    <span class="foot-note">ENCRYPTED IN YOUR BROWSER</span>
-    <span class="foot-note">PAID IN $TALK</span>
-  </div>
+  <a href="index.html" class="foot-brand">TALK · MESSAGING</a>
+  <div class="foot-socials" id="footSocials"></div>
+  <span class="foot-note">Encrypted in your browser · paid in $TALK</span>
 </footer>
 
 <script src="config.js"></script>
-<script>
-(function () {
-  /* barcode del hero: determinista, como el del pase */
-  const bars = document.getElementById("artBars");
-  if (bars) {
-    let out = "", seed = 0x9e3779b9;
-    for (let i = 0; i < 64; i++) {
-      seed = (seed * 1664525 + 1013904223) >>> 0;
-      if (i === 18 || i === 41) { out += `<i style="width:9px;margin-right:11px;height:100%"></i>`; continue; }
-      const w = 1 + (seed % 4), gap = 2 + ((seed >> 8) % 3);
-      out += `<i style="width:${w}px;margin-right:${gap}px;height:${i % 9 === 0 ? 46 : 100}%"></i>`;
-    }
-    bars.innerHTML = out;
-  }
-
-  /* redes del config */
-  const CFG = window.TALK_CONFIG || {};
-  const s = CFG.socials || {};
-  const host = document.getElementById("headSocials");
-  if (!host) return;
-  const order = ["x", "telegram", "discord", "github", "site"];
-  const label = k => k === "site" ? (s.label || "web") : k === "x" ? (s.xHandle || "x") : k;
-  const items = order.filter(k => s[k]).map(k =>
-    `<a href="${s[k]}" target="_blank" rel="noopener noreferrer">${label(k)}</a>`);
-  host.innerHTML = items.join("");
-  if (!items.length) host.hidden = true;
-})();
-</script>
+<script src="landing.js"></script>
 </body>
 </html>
