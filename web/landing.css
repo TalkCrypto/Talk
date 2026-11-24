@@ -30,7 +30,10 @@
 html{scroll-behavior:smooth;scroll-padding-top:80px}
 html,body{margin:0;padding:0}
 body{
-  background:var(--ink);
+  background-color:var(--ink);
+  background-image:radial-gradient(rgba(255,255,255,.055) 1px, transparent 1px);
+  background-size:22px 22px;
+  background-attachment:fixed;
   color:var(--text);
   font-family:var(--sans);
   font-size:16px;
@@ -491,3 +494,9 @@ h2{
 
 /* contactos que todavía no tienen nombre: se muestran como dirección */
 .addr-name{font-family:var(--mono);font-size:11.5px !important;font-weight:500 !important;letter-spacing:.01em}
+/* puntos de fondo: se apagan hacia los bordes para no competir con el texto */
+body::before{
+  content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 30%, transparent 0%, transparent 38%, rgba(10,10,11,.82) 100%);
+}
+main,.site-head,.site-foot{position:relative;z-index:1}
