@@ -139,6 +139,19 @@
   }, { passive: true });
   parallax();
 
+  /* ------------------------------------------------------------- spine */
+  const spineLinks = [...document.querySelectorAll(".spine .sp")];
+  const targets = spineLinks.map(a => document.querySelector(a.getAttribute("href"))).filter(Boolean);
+  if (spineLinks.length && "IntersectionObserver" in window) {
+    const io2 = new IntersectionObserver(entries => {
+      entries.forEach(en => {
+        if (!en.isIntersecting) return;
+        spineLinks.forEach(a => a.classList.toggle("on", a.getAttribute("href") === "#" + en.target.id));
+      });
+    }, { rootMargin: "-45% 0px -45% 0px" });
+    targets.forEach(t => io2.observe(t));
+  }
+
   /* ---------------------------------------------------------- socials */
   const CFG = window.TALK_CONFIG || {};
   const s = CFG.socials || {};

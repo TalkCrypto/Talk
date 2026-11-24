@@ -500,3 +500,38 @@ body::before{
   background:radial-gradient(ellipse at 50% 30%, transparent 0%, transparent 38%, rgba(10,10,11,.82) 100%);
 }
 main,.site-head,.site-foot{position:relative;z-index:1}
+/* ------------------------------------------------------- logotipo + espina */
+.logo .mark{color:var(--text);flex:0 0 auto;margin-right:2px}
+.logo b{letter-spacing:-.02em}
+
+.spine{
+  position:fixed;left:26px;top:50%;transform:translateY(-50%);z-index:40;
+  display:flex;flex-direction:column;gap:0;
+}
+.spine .sp{
+  position:relative;display:flex;align-items:center;gap:0;
+  height:56px;width:14px;justify-content:center;
+}
+/* la línea que une los puntos: la conversación */
+.spine .sp::before{
+  content:"";position:absolute;top:0;bottom:0;left:50%;width:1px;
+  background:rgba(255,255,255,.14);transform:translateX(-50%);
+}
+.spine .sp:first-child::before{top:50%}
+.spine .sp:last-child::before{bottom:50%}
+.spine .sp i{
+  position:relative;z-index:1;width:7px;height:7px;border-radius:50%;
+  background:#2a2a2e;border:1px solid rgba(255,255,255,.18);
+  transition:background .25s,border-color .25s,transform .25s;
+}
+.spine .sp:hover i{border-color:rgba(255,255,255,.6)}
+.spine .sp.on i{background:var(--text);border-color:var(--text);transform:scale(1.25)}
+.spine .sp span{
+  position:absolute;left:20px;white-space:nowrap;
+  font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);
+  opacity:0;transform:translateX(-4px);transition:opacity .2s,transform .2s,color .2s;
+}
+.spine .sp:hover span,.spine .sp.on span{opacity:1;transform:none}
+.spine .sp.on span{color:var(--dim)}
+
+@media(max-width:1180px){ .spine{display:none} }
