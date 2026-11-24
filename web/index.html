@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#000000">
+<title>Talk — mensajes privados entre wallets</title>
+<meta name="description" content="Mensajes cifrados wallet-to-wallet con escrow de 72 horas. Se cobra en $TALK.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="brand"><span class="mark">T</span> Talk</div>
+    <nav class="nav">
+      <a href="#mail" class="on">Panel</a>
+      <a href="#mail">Buzón</a>
+      <a href="deploy.html">Deploy</a>
+    </nav>
+    <div class="grow"></div>
+    <span class="chip" id="bal">—</span>
+    <span class="chip" id="addr">sin conectar</span>
+    <button id="btnConnect" class="solid">Conectar</button>
+  </div>
+</header>
+
+<!-- ================= BANNER ================= -->
+<section class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Escrow 72 h · cifrado en el navegador</div>
+    <h1>Mensajes privados<br><em>que se pagan solos.</em></h1>
+    <p>
+      Escribile a cualquier wallet. Si no te conoce, tu pago queda retenido en el contrato:
+      se libera cuando responde, y volvés a tenerlo si no lo hace. Nadie más puede leer el mensaje.
+    </p>
+    <div class="actions">
+      <button class="solid" id="heroCta">Abrir mi buzón</button>
+      <button id="heroHow">Cómo funciona</button>
+    </div>
+    <div class="socials" id="socials"></div>
+  </div>
+</section>
+
+<!-- ================= STATS ================= -->
+<section class="stats-band"><div class="wrap stats">
+  <div class="stat">
+    <div class="k">Saldo</div>
+    <div class="v" id="stBal">—</div>
+    <div class="sub" id="stBalSub">$TALK</div>
+  </div>
+  <div class="stat">
+    <div class="k">Mensajes</div>
+    <div class="v" id="stMsgs">—</div>
+    <div class="sub" id="stMsgsSub">enviados · recibidos</div>
+  </div>
+  <div class="stat">
+    <div class="k">En escrow</div>
+    <div class="v" id="stEscrow">—</div>
+    <div class="sub" id="stEscrowSub">esperando respuesta</div>
+  </div>
+  <div class="stat">
+    <div class="k">Cobrado</div>
+    <div class="v" id="stEarned">—</div>
+    <div class="sub" id="stEarnedSub">neto de comisión</div>
+  </div>
+</div></section>
+
+<main class="wrap">
+  <div class="banner" id="setupBanner" hidden>
+    Falta configurar los contratos. <a href="deploy.html">Desplegá $TALK y TalkInbox →</a>
+  </div>
+
+  <div class="grid" id="mail">
+    <!-- ---------- columna izquierda ---------- -->
+    <div>
+      <section class="sheet" id="boxSheet">
+        <div class="sheet-head">
+          <h2 class="sheet-title">Mi buzón</h2>
+          <div class="grow"></div>
+          <span class="sheet-badge" id="boxBadge">sin activar</span>
+        </div>
+
+        <!-- el buzón, literalmente: un pase -->
+        <div class="pass" id="pass">
+          <div class="pass-body">
+            <div class="pass-top">
+              <span class="pass-kicker">pase de entrada</span>
+              <span class="pass-addr mono" id="passAddr">—</span>
+            </div>
+
+            <div class="pass-price">
+              <span class="pass-num" id="passPrice">—</span>
+              <span class="pass-cur" id="passCur">TALK</span>
+            </div>
+            <p class="pass-desc" id="passDesc">por cada mensaje de una wallet desconocida</p>
+
+            <dl class="pass-rows">
+              <div><dt>quién entra</dt><dd id="passOpen">—</dd></div>
+              <div><dt>si respondés</dt><dd id="passRule">—</dd></div>
+              <div><dt>vigencia</dt><dd id="passVig">72 h</dd></div>
+            </dl>
+          </div>
+
+          <div class="pass-stub">
+            <span class="pass-stub-lbl">precio</span>
+            <span class="pass-stub-num" id="passStub">—</span>
+            <div class="barcode" id="passBar"></div>
+            <span class="pass-serial mono" id="passKey">····</span>
+          </div>
+        </div>
+
+        <div class="sheet-actions" id="boxActions" hidden>
+          <button id="btnEdit" class="btn-line">Editar pase</button>
+        </div>
+
+          <!-- ---------- asistente ---------- -->
+          <div id="boxForm" hidden>
+
+            <div class="wz-top">
+              <div class="wz-dots" id="wzDots">
+                <span class="wz-dot on"></span><span class="wz-dot"></span><span class="wz-dot"></span>
+              </div>
+              <span class="wz-lbl" id="wzLbl">paso 1 de 3</span>
+            </div>
+
+            <!-- paso 1 -->
+            <div class="wz-page" data-p="1">
+              <h3 class="wz-h">¿Quién puede escribirte?</h3>
+              <div class="choices" id="wzOpen">
+                <button class="choice" data-v="0">
+                  <span class="mark"></span>
+                  <span class="body">
+                    <b>Solo contactos</b>
+                    <small>Quien no te conoce paga para entrar. Filtra el ruido.</small>
+                  </span>
+                </button>
+                <button class="choice" data-v="1">
+                  <span class="mark"></span>
+                  <span class="body">
+                    <b>Cualquiera, gratis</b>
+                    <small>Buzón abierto. Ideal si sos creador y querés que te escriban.</small>
+                  </span>
+                </button>
+              </div>
+              <div class="hint" id="wzOpenHint"></div>
+            </div>
+
+            <!-- paso 2 -->
+            <div class="wz-page" data-p="2" hidden>
+              <h3 class="wz-h">Si respondés, el pago…</h3>
+              <div class="choices" id="wzRule">
+                <button class="choice" data-v="0">
+                  <span class="mark"></span>
+                  <span class="body">
+                    <b>vuelve entero</b>
+                    <small>Contestás gratis. Solo cobrás tu tiempo si no contestás.</small>
+                    <span class="flow"><i class="a" style="width:100%"></i></span>
+                    <span class="flow-lbl">remitente 100%</span>
+                  </span>
+                </button>
+                <button class="choice" data-v="1">
+                  <span class="mark"></span>
+                  <span class="body">
+                    <b>me lo quedo</b>
+                    <small>Te quedás el pago menos el 5% de Talk.</small>
+                    <span class="flow"><i class="b" style="width:95%"></i></span>
+                    <span class="flow-lbl">vos 95% · fee 5%</span>
+                  </span>
+                </button>
+                <button class="choice" data-v="2">
+                  <span class="mark"></span>
+                  <span class="body">
+                    <b>mitad y mitad</b>
+                    <small>La mitad vuelve, la otra mitad es tuya (menos 5%).</small>
+                    <span class="flow"><i class="a" style="width:50%"></i><i class="b" style="width:45%"></i></span>
+                    <span class="flow-lbl">remitente 50% · vos 45% · fee 5%</span>
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            <!-- paso 3 -->
+            <div class="wz-page" data-p="3" hidden>
+              <h3 class="wz-h">Precio para desconocidos</h3>
+
+              <div class="price-row">
+                <input id="wzPrice" type="range" min="0" max="500" step="5" value="120">
+                <div class="price-val"><b id="wzPriceVal">120</b><span>TALK</span></div>
+              </div>
+
+              <div class="presets" id="wzPresets">
+                <button data-p="0">gratis</button>
+                <button data-p="50">50</button>
+                <button data-p="120">120</button>
+                <button data-p="250">250</button>
+              </div>
+
+              <div class="sim">
+                <div class="sim-h">
+                  <span class="tiny mono">así te ve alguien que no te conoce</span>
+                </div>
+                <div class="sim-body" id="wzSim"></div>
+              </div>
+            </div>
+
+            <div class="wz-nav">
+              <button id="wzBack" class="sm" disabled>Atrás</button>
+              <div class="grow"></div>
+              <button id="wzNext" class="solid sm">Siguiente</button>
+            </div>
+        </div>
+      </section>
+
+      <section class="block">
+        <div class="block-head"><h2 class="sheet-title">Conversaciones</h2></div>
+        <div id="convs"><div class="empty">todavía nada</div></div>
+      </section>
+
+      <details class="block block-cfg">
+        <summary>Ajustes del despliegue</summary>
+        <div class="block-body">
+          <label>Token $TALK</label>
+          <input id="cfgToken" class="mono" placeholder="0x…">
+          <label>TalkInbox</label>
+          <input id="cfgInbox" class="mono" placeholder="0x…">
+          <label>Bloque de despliegue</label>
+          <input id="cfgFrom" class="mono" placeholder="122000000">
+          <button id="btnCfg" style="width:100%;margin-top:14px">Guardar y recargar</button>
+        </div>
+      </details>
+    </div>
+
+    <!-- ---------- columna derecha ---------- -->
+    <section class="card thread">
+      <div class="thread-head">
+        <div class="peer">
+          <div class="avatar lg" id="peerAv">—</div>
+          <div class="peer-txt">
+            <div class="peer-name" id="threadTitle">Conversación</div>
+            <div class="peer-sub" id="threadMeta"></div>
+          </div>
+        </div>
+        <div class="grow"></div>
+        <span class="pill-e2e" title="cifrado en tu navegador">
+          <svg viewBox="0 0 24 24" width="11" height="11"><path fill="currentColor" d="M12 1a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-1V6a5 5 0 0 0-5-5zm0 2a3 3 0 0 1 3 3v3H9V6a3 3 0 0 1 3-3zm0 10a2 2 0 0 1 1 3.7V19h-2v-2.3A2 2 0 0 1 12 13z"/></svg>
+          cifrado
+        </span>
+      </div>
+
+      <div id="msgs" class="msgs">
+        <div class="empty">elegí una conversación</div>
+      </div>
+
+      <div id="composer" class="composer" hidden>
+        <div class="thread-actions" id="threadActions"></div>
+
+        <div class="composer-box">
+          <textarea id="text" rows="1" placeholder="Escribí un mensaje…"></textarea>
+          <div class="composer-bar">
+            <span class="cost"><i></i><b id="priceTag">—</b></span>
+            <div class="grow"></div>
+            <button id="btnSend" class="send" aria-label="Enviar">
+              <svg viewBox="0 0 24 24" width="15" height="15"><path fill="currentColor" d="M12 3.2 19 11h-4.6v9.8H9.6V11H5z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="hint" id="composerHint"></div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="brand"><span class="mark">T</span> Talk</div>
+    <div class="grow"></div>
+    <span class="tiny mono" id="footMeta">sin audit</span>
+  </div>
+</footer>
+
+<div id="log"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/tweetnacl@1.0.3/nacl.min.js"></script>
+<script>
+/* ---- arnés de desarrollo: solo activo con ?dev=1 (inocuo en producción) ---- */
+(function () {
+  if (location.search.indexOf("dev=1") < 0) return;
+  var q = new URLSearchParams(location.search);
+  if (q.get("token")) localStorage.setItem("talk:cfg:token", q.get("token"));
+  if (q.get("inbox")) localStorage.setItem("talk:cfg:inbox", q.get("inbox"));
+  if (q.get("from")) localStorage.setItem("talk:cfg:fromBlock", q.get("from"));
+  localStorage.setItem("talk:cfg:rpc", q.get("rpc") || "http://127.0.0.1:8546");
+  localStorage.setItem("talk:cfg:chainId", q.get("chainId") || "31337");
+  var ACCOUNT = q.get("account"), SIG = q.get("sig");
+  window.ethereum = {
+    isDevStub: true, on: function () {}, removeListener: function () {},
+    request: function (a) {
+      var m = a.method;
+      if (m === "eth_chainId") return Promise.resolve("0x7a69");
+      if (m === "eth_requestAccounts" || m === "eth_accounts") return Promise.resolve([ACCOUNT]);
+      if (m === "personal_sign") return Promise.resolve(SIG);
+      if (m === "wallet_switchEthereumChain" || m === "wallet_addEthereumChain") return Promise.resolve(null);
+      return Promise.reject(new Error("dev-stub: " + m));
+    }
+  };
+  window.__TALK_DEV_STUB = true;
+})();
+</script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

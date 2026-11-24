@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Talk · desplegar</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header>
+  <div class="brand"><span class="logo">T</span> Talk</div>
+  <span class="tag">deploy</span>
+  <div class="spacer"></div>
+  <span class="chip" id="addr">sin conectar</span>
+  <button id="btnConnect" class="primary">Conectar wallet</button>
+</header>
+
+<div class="deploy">
+
+  <div class="banner">
+    Desplegar en <b>Robinhood Chain</b> cuesta gas en ETH. El token es tuyo: suministro fijo,
+    sin mint. Si ya tenés un token en esta red, saltá al paso 2 y pegá su dirección.
+  </div>
+
+  <!-- PASO 1 -->
+  <div class="step" id="step1">
+    <h3><span class="num">1</span> Token $TALK</h3>
+    <div style="font-size:13px;color:var(--dim)">
+      Si todavía no tenés token, desplegalo acá. Si ya existe, pegá la dirección.
+    </div>
+
+    <label>Nombre</label>
+    <input id="tName" value="Talk">
+    <label>Símbolo</label>
+    <input id="tSymbol" value="TALK">
+    <label>Suministro (unidades enteras)</label>
+    <input id="tSupply" value="1000000000" inputmode="numeric">
+    <label>Recibe el suministro</label>
+    <input id="tTo" class="mono" placeholder="0x… (por defecto, tu wallet)">
+
+    <div class="row" style="margin-top:14px">
+      <button id="btnDeployToken" class="primary">Desplegar $TALK</button>
+    </div>
+
+    <div class="out" id="outToken" hidden></div>
+  </div>
+
+  <!-- PASO 2 -->
+  <div class="step" id="step2">
+    <h3><span class="num">2</span> TalkInbox</h3>
+    <div style="font-size:13px;color:var(--dim)">
+      El contrato de correo. Cobra en el token del paso 1 y guarda el escrow.
+    </div>
+
+    <label>Dirección del token de pago</label>
+    <input id="payToken" class="mono" placeholder="0x…">
+    <label>Tesorería (recibe la comisión del 5%)</label>
+    <input id="treasury" class="mono" placeholder="0x… (por defecto, tu wallet)">
+
+    <div class="row" style="margin-top:14px">
+      <button id="btnDeployInbox" class="primary">Desplegar TalkInbox</button>
+    </div>
+
+    <div class="out" id="outInbox" hidden></div>
+  </div>
+
+  <!-- PASO 3 -->
+  <div class="step" id="step3">
+    <h3><span class="num">3</span> Listo</h3>
+    <div style="font-size:13px;color:var(--dim)">
+      Las direcciones quedan guardadas en este navegador. Para que valgan para todos,
+      pegalas en <span class="mono">web/config.js</span>.
+    </div>
+    <div class="out" id="outFinal" hidden></div>
+    <div class="row" style="margin-top:14px">
+      <button id="btnGo" class="primary" disabled>Abrir Talk</button>
+    </div>
+  </div>
+
+</div>
+
+<div id="log"></div>
+
+<script src="artifacts.js"></script>
+<script>
+"use strict";
+const ART = window.TALK_ARTIFACTS;
+const CFG = window.TALK_CONFIG || {};
+const CHAIN = Object.assign({
+  id: 4663, name: "Robinhood Chain", rpc: "https://rpc.mainnet.chain.robinhood.com",
+  explorer: "https://robin.etherscan.io", nativeSymbol: "ETH"
+}, CFG.chain || {});
+
+const $ = id => document.getElementById(id);
+const log = (m, k = "") => { $("log").className = k; $("log").textContent = m || ""; };
+
+const strip0x = h => String(h || "").replace(/^0x/i, "").toLowerCase();
+const u256 = v => BigInt(v).toString(16).padStart(64, "0");
+const asAddr = a => strip0x(a).padStart(64, "0");
+const encStr = s => {
+  const b = new TextEncoder().encode(s);
+  const hex = Array.from(b, x => x.toString(16).padStart(2, "0")).join("");
+  return u256(b.length) + hex.padEnd(Math.ceil(b.length / 32) * 32 * 2, "0");
+};
+const isAddr = a => /^0x[0-9a-fA-F]{40}$/.test(String(a || "").trim());
+
+let account = null, rpcId = 1;
+async function rpc(method, params) {
+  const r = await fetch(CHAIN.rpc, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", id: rpcId++, method, params })
+  });
+  const j = await r.json();
+  if (j.error) throw new Error(j.error.message);
+  return j.result;
+}
+
+async function ensureChain() {
+  const cur = await ethereum.request({ method: "eth_chainId" });
+  if (parseInt(cur, 16) === CHAIN.id) return;
+  const hexId = "0x" + CHAIN.id.toString(16);
+  try {
+    await ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: hexId }] });
+  } catch (e) {
+    if (e.code === 4902) {
+      await ethereum.request({
+        method: "wallet_addEthereumChain",
+        params: [{
+          chainId: hexId, chainName: CHAIN.name,
+          nativeCurrency: { name: CHAIN.nativeSymbol, symbol: CHAIN.nativeSymbol, decimals: 18 },
+          rpcUrls: [CHAIN.rpc], blockExplorerUrls: [CHAIN.explorer]
+        }]
+      });
+    } else throw e;
+  }
+}
+
+async function deploy(kind) {
+  const art = kind === "token" ? ART.token : ART.inbox;
+  let args = "";
+
+  if (kind === "token") {
+    const name = $("tName").value.trim() || "Talk";
+    const symbol = $("tSymbol").value.trim() || "TALK";
+    const supply = BigInt($("tSupply").value.trim() || "0") * 10n ** 18n;
+    const to = ($("tTo").value.trim() || account);
+    if (!isAddr(to)) throw new Error("dirección de destino inválida");
+    if (supply <= 0n) throw new Error("suministro inválido");
+
+    const nameEnc = encStr(name), symEnc = encStr(symbol);
+    const offName = 4 * 32;
+    const offSymbol = offName + nameEnc.length / 2;
+    args = u256(offName) + u256(offSymbol) + u256(supply) + asAddr(to) + nameEnc + symEnc;
+  } else {
+    const token = $("payToken").value.trim();
+    const treasury = ($("treasury").value.trim() || account);
+    if (!isAddr(token)) throw new Error("dirección del token inválida");
+    if (!isAddr(treasury)) throw new Error("tesorería inválida");
+    args = asAddr(token) + asAddr(treasury);
+  }
+
+  const data = art.bytecode + args;
+  log("firmá el despliegue en tu wallet…", "warn");
+  const hash = await ethereum.request({
+    method: "eth_sendTransaction",
+    params: [{ from: account, data, gas: "0x" + (kind === "token" ? 1500000 : 4000000).toString(16) }]
+  });
+  log("esperando confirmación…", "warn");
+
+  for (let i = 0; i < 160; i++) {
+    const r = await rpc("eth_getTransactionReceipt", [hash]);
+    if (r) {
+      if (r.status === "0x0") throw new Error("el despliegue revirtió");
+      return { address: r.contractAddress, block: parseInt(r.blockNumber, 16) };
+    }
+    await new Promise(z => setTimeout(z, 1500));
+  }
+  throw new Error("timeout");
+}
+
+function show(el, text) { el.hidden = false; el.textContent = text; }
+
+async function connect() {
+  if (!window.ethereum) { log("instalá MetaMask", "err"); return; }
+  try {
+    await ensureChain();
+    const [acc] = await ethereum.request({ method: "eth_requestAccounts" });
+    account = acc;
+    $("addr").innerHTML = `<b>${acc.slice(0, 6)}…${acc.slice(-4)}</b>`;
+    $("tTo").placeholder = acc;
+    $("treasury").placeholder = acc;
+    $("btnConnect").textContent = "Conectado";
+    log("conectado", "ok");
+  } catch (e) { log("error: " + e.message, "err"); }
+}
+
+let tokenAddr = "", inboxAddr = "", fromBlock = 0;
+
+$("btnConnect").onclick = connect;
+
+$("btnDeployToken").onclick = async () => {
+  try {
+    const r = await deploy("token");
+    tokenAddr = r.address;
+    $("payToken").value = tokenAddr;
+    show($("outToken"), `$TALK desplegado\n${tokenAddr}\n${CHAIN.explorer}/address/${tokenAddr}`);
+    $("step1").classList.add("done");
+    log("token desplegado ✔", "ok");
+  } catch (e) { log("error: " + (e.message || e), "err"); }
+};
+
+$("btnDeployInbox").onclick = async () => {
+  try {
+    const r = await deploy("inbox");
+    inboxAddr = r.address;
+    fromBlock = r.block;
+    show($("outInbox"), `TalkInbox desplegado\n${inboxAddr}\nbloque ${fromBlock}\n${CHAIN.explorer}/address/${inboxAddr}`);
+    $("step2").classList.add("done");
+
+    if (!$("payToken").value.trim()) throw new Error("falta el token de pago");
+    tokenAddr = $("payToken").value.trim();
+
+    localStorage.setItem("talk:cfg:token", tokenAddr);
+    localStorage.setItem("talk:cfg:inbox", inboxAddr);
+    localStorage.setItem("talk:cfg:fromBlock", String(fromBlock));
+
+    show($("outFinal"),
+      `Guardado en este navegador.\n\n` +
+      `Para fijarlo en el proyecto, editá web/config.js:\n\n` +
+      `  token: "${tokenAddr}",\n` +
+      `  inbox: "${inboxAddr}",\n` +
+      `  fromBlock: ${fromBlock}\n\n` +
+      `Siguiente paso: en Talk, cada wallet activa su buzón (precio + regla + llave).`);
+    $("step3").classList.add("done");
+    $("btnGo").disabled = false;
+    log("TalkInbox desplegado ✔  todo listo", "ok");
+  } catch (e) { log("error: " + (e.message || e), "err"); }
+};
+
+$("btnGo").onclick = () => { location.href = "index.html"; };
+</script>
+</body>
+</html>

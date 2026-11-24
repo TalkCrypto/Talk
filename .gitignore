@@ -1,0 +1,18 @@
+# binarios de herramientas (276 MB — no van al repo)
+tools/solc/
+tools/foundry/
+
+# dependencias
+node_modules/
+.pnpm-store/
+
+# sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# logs y temporales
+*.log
+npm-debug.log*
+.cache/
+tmp/
