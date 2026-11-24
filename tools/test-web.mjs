@@ -41,21 +41,21 @@ globalThis.__t = (async () => {
   const ok = (n, c) => out.push([!!c, n]);
   const eq = (a, b) => String(a) === String(b);
 
-  // --- hash
+  // --- hashing
   const abc = new TextEncoder().encode("abc");
   ok("sha256Fallback vector", eq(bytesToHex(sha256Fallback(abc)),
      "0xba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"));
   ok("sha256 subtle == fallback", eq(bytesToHex(await sha256(abc)), bytesToHex(sha256Fallback(abc))));
 
-  // --- unidades
+  // --- units
   ok("parseUnits('100')", parseUnits("100") === 100n * 10n**18n);
   ok("parseUnits('0.5')", parseUnits("0.5") === 5n * 10n**17n);
   let threw = false; try { parseUnits("x"); } catch { threw = true; }
-  ok("parseUnits inválido revienta", threw);
+  ok("parseUnits throws on garbage", threw);
   ok("fmt(100 TALK)", eq(fmt(100n * 10n**18n), "100 TALK"));
 
-  // --- firma determinista
-  ok("SIG_MSG estable", SIG_MSG === "Talk\\n\\nSign to unlock your encrypted inbox.\\n" +
+  // --- deterministic signature
+  ok("SIG_MSG is stable", SIG_MSG === "Talk\\n\\nSign to unlock your encrypted inbox.\\n" +
      "This is free: it is not a transaction and costs no gas.\\n\\nKey version: 1");
 
   // --- ABI: send(address,bytes)
@@ -70,7 +70,7 @@ globalThis.__t = (async () => {
   const cfg = SEL.configure + u256(0) + u256(1) + asAddr("0x" + "11".repeat(32)) + u256(100n * 10n**18n);
   ok("configure selector", cfg.startsWith("0xc9119f4b"));
   ok("configure: 4 words", words(cfg.slice(10)).length === 4);
-  ok("configure: precio 100", wBig(words(cfg.slice(10))[3]) === 100n * 10n**18n);
+  ok("configure: price 100", wBig(words(cfg.slice(10))[3]) === 100n * 10n**18n);
 
   // --- ABI: reply
   const rep = SEL.reply + u256(7) + u256(64) + dynBytes(ct);
@@ -80,14 +80,14 @@ globalThis.__t = (async () => {
   // --- ABI: refund
   ok("refund selector", (SEL.refund + u256(3)).startsWith("0x278ecde1"));
 
-  // --- decodificar inboxes() de 5 words
+  // --- decode inboxes() with 5 words
   const inboxData = "0x" + u256(1) + u256(0) + u256(2) + "ab".repeat(32) + u256(250n * 10n**18n);
   const wi = words(inboxData);
   ok("inboxes: registered", wBig(wi[0]) === 1n);
   ok("inboxes: rule split", wBig(wi[2]) === 2n);
   ok("inboxes: price", wBig(wi[4]) === 250n * 10n**18n);
 
-  // --- decodificar payments() de 5 punteros
+  // --- decode payments() with 5 slots
   const payData = "0x" + asAddr("0x" + "11".repeat(20)) + asAddr("0x" + "22".repeat(20)) +
                   u256(95n * 10n**18n) + u256(2000000000) + u256(1);
   const wp = words(payData);
@@ -95,7 +95,7 @@ globalThis.__t = (async () => {
   ok("payments: amount", wBig(wp[2]) === 95n * 10n**18n);
   ok("payments: status pending", wBig(wp[4]) === 1n);
 
-  // --- decodificar log Message
+  // --- decode a Message log
   const logData = "0x" + u256(0) + u256(64) + u256(59) + ct.slice(2).padEnd(128, "0");
   const fakeLog = { data: logData, topics: [
     TOPIC_MSG,
@@ -111,29 +111,29 @@ globalThis.__t = (async () => {
   ok("decodeMsg: ciphertext recupera 59 B", strip0x(dm.ct).length / 2 === 59);
   ok("decodeMsg: bloque", dm.block === 1234);
 
-  // --- cripto: sobre A -> B y vuelta
+  // --- crypto: envelope A -> B and back
   const A = nacl.box.keyPair(), Bk = nacl.box.keyPair();
   S.keyPair = A;
   const pubB = bytesToHex(Bk.publicKey);
   const env = seal(pubB, "hola Talk");
-  ok("sobre: 57 + len + 16", strip0x(env).length / 2 === 57 + 9 + 16);
-  ok("sobre: versión 1", hexToBytes(env)[0] === 1);
-  ok("sobre: embebe emisor", bytesToHex(hexToBytes(env).slice(1, 33)) === bytesToHex(A.publicKey));
+  ok("envelope: 57 + len + 16", strip0x(env).length / 2 === 57 + 9 + 16);
+  ok("envelope: version 1", hexToBytes(env)[0] === 1);
+  ok("envelope: embeds sender", bytesToHex(hexToBytes(env).slice(1, 33)) === bytesToHex(A.publicKey));
 
   S.keyPair = Bk;
-  ok("B descifra", unseal(env, bytesToHex(A.publicKey)) === "hola Talk");
+  ok("B decrypts", unseal(env, bytesToHex(A.publicKey)) === "hola Talk");
   S.keyPair = A;
-  ok("A re-lee lo suyo", unseal(env, pubB) === "hola Talk");
+  ok("A re-reads their own", unseal(env, pubB) === "hola Talk");
   S.keyPair = nacl.box.keyPair();
-  ok("llave ajena -> null", unseal(env, pubB) === null);
+  ok("wrong key -> null", unseal(env, pubB) === null);
 
   S.keyPair = Bk;
   const bad = hexToBytes(env); bad[bad.length - 1] ^= 0xff;
-  ok("sobre alterado -> null", unseal(bytesToHex(bad), bytesToHex(A.publicKey)) === null);
+  ok("tampered envelope -> null", unseal(bytesToHex(bad), bytesToHex(A.publicKey)) === null);
 
-  // --- utilidades
+  // --- helpers
   ok("short()", short("0x1234567890abcdef1234567890abcdef12345678") === "0x1234…5678");
-  ok("esc() escapa", esc("<b>&") === "&lt;b&gt;&amp;");
+  ok("esc() escapes", esc("<b>&") === "&lt;b&gt;&amp;");
 
   return out;
 })();

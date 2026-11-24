@@ -1,131 +1,132 @@
 # Talk
 
-Mensajes cifrados entre wallets. Se cobra en **$TALK**, tu token interno.
-El pago queda en escrow 72 h: si el destinatario responde se libera, si no vuelve entero.
+Encrypted messaging between wallets. Payments are held in escrow for 72 hours and settled in
+**$TALK**, our own token.
 
-Proyecto autocontenido: contratos propios + web estática. Sin dependencias de terceros,
-sin backend, sin base de datos.
+Self-contained: our contracts plus a static site. No backend, no database, no third-party service
+in the path.
 
 ---
 
-## Estado
+## Status
 
 | | |
 |---|---|
-| Contratos | compilan con `solc 0.8.26` (optimizer 200 runs) |
-| Auditoría estática | **30/30** (`tools/audit.py`: selectores, topics, ABI, ids, artefactos) |
-| Tests de contrato | **47/47** sobre un nodo EVM local (anvil), con dinero real de prueba |
-| Tests de frontend | **37/37** (cripto, ABI, decodificación de eventos) |
-| Auditoría externa | **no** — usalo con montos chicos |
+| Contracts | compile with `solc 0.8.26` (optimizer, 200 runs) |
+| Static audit | **30/30** (`tools/audit.py`: selectors, topics, ABI, ids, artifacts) |
+| Contract tests | **47/47** on a local EVM node (anvil), with test money moving |
+| Frontend tests | **37/37** (crypto, ABI encoding, event decoding) |
+| External audit | **none** — keep amounts small |
 
-Lo que los tests cubren de punta a punta: activar buzón, enviar pagando, liquidar con las
-3 reglas, contactos gratis, expiración + reembolso tras 72 h, buzón abierto, y los 8 errores
-esperados (auto-mensaje, wallet sin buzón, doble respuesta, reembolso antes de tiempo, etc.).
-
----
-
-## Cómo funciona
-
-```
-desconocido ──paga X TALK──▶ contrato (escrow)
-                                 │
-                    ┌────────────┴────────────┐
-              responde <72h                no responde
-                    │                        │
-        se reparte según su regla      cualquiera reembolsa
-        (devolver / quedar / 50-50)     → vuelve el 100%
-                    │
-              son contactos: gratis para siempre
-```
-
-- **Comisión:** 5 % de lo que se queda el receptor, va a la tesorería. Reembolsos y
-  mensajes gratis no pagan nada.
-- **Estados del pago:** `1` en escrow · `2` liquidado · `3` reembolsado.
-- **Reglas al responder:** `0` devolver todo · `1` quedármelo (menos 5 %) · `2` mitad y mitad.
-
-### Cifrado
-
-Todo pasa en el navegador. El contrato solo guarda bytes opacos.
-
-```
-firma   = personal_sign("Talk\n\nSign to unlock…")   // gratis, no es transacción
-semilla = SHA-256(bytes de la firma)                  // 32 B
-llaves  = nacl.box.keyPair.fromSecretKey(semilla)     // X25519
-```
-
-- La pública (32 B) se publica en el contrato como `encKey` al activar el buzón.
-- La privada queda en `localStorage` (`talk:enc:<wallet>`), **nunca sale del dispositivo**.
-- Por eso la misma wallet abre el mismo buzón en cualquier equipo: la llave sale de la firma.
-
-Sobre del mensaje (va en el evento):
-
-```
-[ 0x01 ][ pubkey emisor 32 B ][ nonce 24 B ][ nacl.box (texto + tag 16 B) ]
-```
-
-`nacl.box` = X25519 + XSalsa20-Poly1305. El receptor usa el emisor embebido si no es él mismo.
+What the tests actually cover: activating an inbox, sending a paid message, settling under all
+three rules, contacts going free, expiry plus refund after 72 hours, the open inbox, and the eight
+failure cases we expect (self-message, unregistered inbox, double reply, early refund, oversized
+payload, and so on).
 
 ---
 
-## Estructura
+## How it works
+
+```
+stranger ──pays X TALK──▶ contract (escrow)
+                             │
+                 ┌───────────┴────────────┐
+           replies within 72h        no reply
+                 │                        │
+     split per the inbox rule      anyone can refund
+     (refund / keep / 50-50)        → 100% goes back
+                 │
+         they are contacts: free forever
+```
+
+- **Fee:** 5% of what the recipient keeps, paid to the treasury. Refunds and free messages pay nothing.
+- **Payment states:** `1` in escrow · `2` settled · `3` refunded.
+- **Reply rules:** `0` refund everything · `1` keep it (minus 5%) · `2` split 50/50.
+
+### Encryption
+
+All of it happens in the browser. The contract only stores opaque bytes.
+
+```
+signature = personal_sign("Talk\n\nSign to unlock…")   // free, not a transaction
+seed      = SHA-256(signature bytes)                    // 32 B
+keypair   = nacl.box.keyPair.fromSecretKey(seed)        // X25519
+```
+
+- The public key (32 B) is published in the contract as `encKey` when you activate the inbox.
+- The private key stays in `localStorage` (`talk:enc:<wallet>`) and **never leaves the device**.
+- That's why the same wallet opens the same inbox on any machine: the key derives from the signature.
+
+Message envelope, carried in the event:
+
+```
+[ 0x01 ][ sender pubkey 32 B ][ nonce 24 B ][ nacl.box (text + 16 B tag) ]
+```
+
+`nacl.box` is X25519 + XSalsa20-Poly1305. The recipient uses the sender key embedded in the envelope,
+unless the envelope is their own — then they use the peer's key.
+
+---
+
+## Layout
 
 ```
 Talk/
   contracts/
-    TalkToken.sol      ERC-20 de suministro fijo (sin mint)
-    TalkInbox.sol      buzón + escrow + contactos
-    build/             combined.json de solc
+    TalkToken.sol      fixed-supply ERC-20, no mint
+    TalkInbox.sol      inbox + escrow + contacts
+    build/             solc combined.json
   web/
     index.html         dashboard
-    app.js             lógica + cripto + asistente
-    styles.css         negro/blanco minimalista
-    config.js          direcciones y redes sociales
-    deploy.html        asistente de despliegue
-    artifacts.js       ABI + bytecode generados
-    abi/               ABI en JSON
+    app.js             logic, crypto, wizard
+    styles.css         black and white, editorial
+    config.js          addresses and social links
+    deploy.html        deployment wizard
+    artifacts.js       generated ABI + bytecode
+    abi/               ABI as JSON
   tools/
     build-artifacts.mjs   solc → artifacts.js
-    audit.py              auditoría estática (ABI ↔ selectores ↔ topics ↔ HTML)
-    serve-web.mjs         servidor estático (dev)
-    test-contract.py      suite end-to-end contra anvil
-    test-web.mjs          suite de la lógica del frontend
-    setup-local.mjs       siembra estado de prueba en anvil
-    solc/solc.exe         compilador
-    foundry/anvil.exe     nodo EVM local
+    audit.py              static audit (ABI ↔ selectors ↔ topics ↔ HTML)
+    serve-web.mjs         static server (dev)
+    test-contract.py      end-to-end suite against anvil
+    test-web.mjs          frontend logic suite
+    setup-local.mjs       seeds test state on anvil
+    solc/solc.exe         compiler
+    foundry/anvil.exe     local EVM node
 ```
 
-### Auditoría
+### Audit
 
-`python tools/audit.py` verifica que nada se haya desincronizado:
+`python tools/audit.py` proves nothing has drifted:
 
-- cada selector de `app.js` contra `keccak256` de la firma en la ABI compilada;
-- los `topic0` de los eventos (`Message`, `Settled`);
-- que `web/abi/*.json` y el bytecode de `artifacts.js` sean exactamente lo que produjo solc;
-- que cada `id` que el JS busca exista en el HTML, y que no queden referencias al formulario viejo;
-- que `deploy.html` guarde las tres claves de configuración y use los artefactos;
-- que el contrato no tenga `withdraw`, que use guard de reentrancy y exponga la superficie esperada.
+- every selector in `app.js` against `keccak256` of the signature in the compiled ABI;
+- both event `topic0` values (`Message`, `Settled`);
+- that `web/abi/*.json` and the bytecode in `artifacts.js` are exactly what solc produced;
+- that every `id` the JS looks up exists in the HTML, and that no references to the old form remain;
+- that `deploy.html` persists all three config keys and uses the artifacts;
+- that the contract has no `withdraw`, uses a reentrancy guard, and exposes the expected surface.
 
-Corre en CI sin red ni nodos: es solo lectura de archivos.
+It reads files only — no network, no node.
 
 ---
 
-## Desplegar
+## Deploy
 
-### Opción A — asistente incluido
+### Option A — the bundled wizard
 
-Serví `web/` y abrí `deploy.html` con tu wallet en **Robinhood Chain**:
+Serve `web/` and open `deploy.html` with your wallet on **Robinhood Chain**:
 
-1. **Desplegar $TALK** — nombre, símbolo, suministro y destinatario.
-2. **Desplegar TalkInbox** — token de pago + tesorería (recibe el 5 %).
-3. Las direcciones quedan guardadas en el navegador; el paso 3 te muestra el snippet
-   para `web/config.js` y te lleva al dashboard.
+1. **Deploy $TALK** — name, symbol, supply, recipient.
+2. **Deploy TalkInbox** — payment token plus treasury (which receives the 5%).
+3. The addresses are stored in the browser; step 3 prints the snippet for `web/config.js` and
+   links to the dashboard.
 
-Necesitás ETH en la cadena para el gas (dos deploys: ~1.5 M y ~4 M de gas).
+You need ETH on the chain for gas (two deployments: roughly 1.5M and 4M gas).
 
-### Opción B — Remix / forge
+### Option B — Remix or forge
 
-Abrí `contracts/TalkToken.sol` y `contracts/TalkInbox.sol`, compilá con 0.8.26 y desplegá.
-Después pegá las direcciones en `web/config.js` (o en el panel *Ajustes del despliegue*).
+Open `contracts/TalkToken.sol` and `contracts/TalkInbox.sol`, compile with 0.8.26, deploy. Then
+paste the addresses into `web/config.js` (or the *Deployment settings* panel in the app).
 
 ```js
 // web/config.js
@@ -134,95 +135,90 @@ inbox: "0x…",      // TalkInbox
 fromBlock: 122000000
 ```
 
-`fromBlock` importa: `eth_getLogs` barre desde ahí. Si lo dejás en 0 y la cadena es larga,
-el RPC puede rechazar el rango.
+`fromBlock` matters: `eth_getLogs` scans from there. Leave it at 0 on a long chain and the RPC will
+refuse the range.
 
-### Redes del banner
-
-En `web/config.js`:
+### Social links
 
 ```js
 socials: {
-  x: "https://x.com/tuUsuario", xHandle: "@tuUsuario",
+  x: "https://x.com/yourHandle", xHandle: "@yourHandle",
   telegram: "https://t.me/…", discord: "https://discord.gg/…",
   github: "https://github.com/…", site: "https://…"
 }
 ```
 
-Las que dejes vacías se muestran apagadas (sin link).
+Anything left empty renders as a dimmed, non-clickable chip.
 
 ---
 
-## Correr local
+## Run it locally
 
 ```bash
-# web
 node tools/serve-web.mjs          # http://127.0.0.1:8100
-# con datos de ejemplo, sin wallet:
-#   http://127.0.0.1:8100/?demo=1          → dashboard poblado
-#   http://127.0.0.1:8100/?demo=wizard     → asistente de buzón
+# preview with sample data, no wallet:
+#   http://127.0.0.1:8100/?demo=1          → populated dashboard
+#   http://127.0.0.1:8100/?demo=wizard     → inbox wizard
 
-# tests
-node tools/setup-local.mjs        # requiere anvil en 8546
+node tools/setup-local.mjs        # needs anvil on 8546
 python tools/test-contract.py
 node tools/test-web.mjs
 ```
 
-Para la suite de contratos, `anvil --port 8546` en otra terminal.
+For the contract suite, run `anvil --port 8546` in another terminal.
 
 ---
 
-## Dashboard
+## The dashboard
 
-**Lenguaje visual:** papel sobre negro. Instrument Serif para titulares y números, Geist para
-la interfaz, Geist Mono sólo para datos (direcciones, hashes, sellos). Sin tarjetas genéricas en
-la columna del buzón: reglas de 1px, listas y un objeto impreso.
+**Visual language:** paper on black. Instrument Serif for headlines and numbers, Geist for the
+interface, Geist Mono only for data (addresses, hashes, stamps). No generic cards in the inbox
+column — 1px rules, lists, and one printed object.
 
-- **Banner:** titular serif con la segunda línea en cursiva, dos CTA y las redes como sellos.
-- **Cuatro métricas** en banda: saldo, mensajes, en escrow, cobrado. Se calculan de los eventos
-  (`Message` y `Settled`), no de una API.
-- **El buzón es un pase.** No un formulario: un ticket blanco con la perforación, el precio
-  en número grande, las condiciones con puntos guía, y en el talón el precio, un código de barras
-  generado a partir de la `encKey` y el serial. Si no está emitido se muestra como **borrador**.
-- **Asistente de 3 pasos** para emitir el pase: cada elección actualiza el ticket en vivo
-  (precio, regla, quién entra), con la simulación del reparto exacto.
-- **Conversaciones** como lista con reglas; la activa se marca con una barra blanca a la izquierda.
-- **Hilo:** agrupado por emisor, separador de día, hora real de cada bloque, chips de pago por
-  estado y burbujas propias en blanco.
-
----
-
-## Decisiones de diseño
-
-- **Un solo token.** `TalkInbox` cobra en un token inmutable (el del constructor). Más simple
-  y más barato que el multi-asset; si el token cambia, se despliega otro inbox.
-- **Estado derivado.** `isContact` se marca al liquidar, en ambos sentidos. No hay lista
-  editable: los contactos son un hecho económico, no una preferencia.
-- **Contabilidad estricta.** `send` verifica que llegó exactamente el monto pedido
-  (`WrongPayment`), para no romperse con tokens que cobran comisión al transferir.
-- **Sin rescate de fondos.** El contrato no tiene `withdraw`: lo único que puede salir es
-  lo que el escrow dicta. No hay backdoor.
-- **Reentrancy guard** en `send`, `reply` y `refund`.
-
-### Límites conocidos
-
-- El texto va en el evento: cualquiera lo ve (cifrado) y paga gas por su tamaño.
-  `MAX_CIPHERTEXT` = 4096 B (~4 KB de texto).
-- Si el token fuera fee-on-transfer, el receptor recibe menos de lo nominal aunque la
-  contabilidad sea exacta al entrar.
-- El buzón no se puede borrar (el `encKey` queda). Perder la wallet = perder el buzón.
-- Sin auditoría externa.
+- **Banner:** serif headline with the second line in italic, two calls to action, social links as stamps.
+- **Four metrics** in a band: balance, messages, in escrow, earned. All derived from events
+  (`Message`, `Settled`), never from an API.
+- **The inbox is a pass.** Not a form: a white ticket with the perforation, the price in large
+  serif numerals, terms with dot leaders, and on the stub the price, a barcode generated from your
+  `encKey`, and the serial. If it isn't issued yet it shows as a **draft**.
+- **Three-step wizard** to issue the pass: each choice updates the ticket live (price, rule, who
+  gets in), with an exact split simulation.
+- **Conversations** as a ruled list; the active one gets a white bar on the left.
+- **Thread:** grouped by sender, day separators, real block timestamps, payment chips by state, and
+  your own bubbles in white.
 
 ---
 
-## Comparación con el Mail de Nexus
+## Design decisions
 
-Mismo protocolo de mensajería (está documentado en `../sobre-mail/README.md`), pero:
+- **One token.** `TalkInbox` charges in a single immutable token set in the constructor. Simpler and
+  cheaper than multi-asset; a different token means a different inbox.
+- **Derived state.** `isContact` is set when a payment settles, in both directions. There's no
+  editable contact list: contacts are an economic fact, not a preference.
+- **Strict accounting.** `send` verifies that exactly the required amount arrived (`WrongPayment`),
+  so fee-on-transfer tokens can't quietly break the escrow.
+- **No rescue function.** The contract has no `withdraw`: the only funds that move are the ones the
+  escrow dictates. No backdoor.
+- **Reentrancy guard** on `send`, `reply` and `refund`.
+
+### Known limits
+
+- The text travels in the event: anyone can see it (encrypted) and you pay gas for its size.
+  `MAX_CIPHERTEXT` is 4096 B (~4 KB of text).
+- With a fee-on-transfer token the recipient gets less than nominal, even though entry accounting is exact.
+- An inbox can't be deleted (the `encKey` stays). Lose the wallet, lose the inbox.
+- No external audit.
+
+---
+
+## Compared to Nexus Mail
+
+Same messaging protocol (documented in `../sobre-mail/README.md`), but:
 
 | | Nexus Mail | Talk |
 |---|---|---|
-| Contrato | de terceros, ya desplegado | tuyo |
-| Moneda | PONS o ETH | **solo $TALK** |
-| Comisión 5 % | va a la tesorería de Nexus | **va a tu tesorería** |
-| Lógica de pagos | multi-asset | un token, menos gas |
-| Interfaz | app completa con radar | dashboard enfocado en el buzón |
+| Contract | third-party, already deployed | yours |
+| Currency | PONS or ETH | **$TALK only** |
+| 5% fee | goes to Nexus treasury | **goes to your treasury** |
+| Payment logic | multi-asset | single token, less gas |
+| Interface | full app with a radar | dashboard focused on the inbox |

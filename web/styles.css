@@ -180,7 +180,7 @@ textarea{resize:vertical;min-height:58px}
 .mono{font-family:var(--mono)}
 .tiny{font-size:11px;color:var(--dim)}
 
-/* ---------------- estado de mi buzón ---------------- */
+/* ----------------------------- inbox state ----------------------------- */
 .state{padding:14px 16px;border:1px solid var(--line);border-radius:10px;background:#000;font-size:12.5px}
 .state .line{display:flex;justify-content:space-between;gap:10px;padding:3px 0}
 .state .line span:first-child{color:var(--dim2);font-family:var(--mono);font-size:10.5px;letter-spacing:1px;text-transform:uppercase}
@@ -316,7 +316,7 @@ button.send:disabled{background:#242424;color:#5a5a5a}
 }
 .sheet-badge.on{color:#0a0a0a;background:#fff;border-color:#fff}
 
-/* el pase: papel blanco sobre negro */
+/* the pass: white paper on black */
 .pass{
   display:flex;background:#fff;color:#0a0a0a;border-radius:3px;
   position:relative;overflow:hidden;
@@ -350,7 +350,7 @@ button.send:disabled{background:#242424;color:#5a5a5a}
   text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
 
-/* talón perforado */
+/* perforated stub */
 .pass-stub{
   width:104px;flex:0 0 auto;border-left:1px dashed #c2c2c2;
   padding:14px 10px 12px;display:flex;flex-direction:column;align-items:center;
@@ -382,7 +382,7 @@ button.send:disabled{background:#242424;color:#5a5a5a}
 }
 .btn-line:hover{border-color:#fff}
 
-/* ---------------- asistente de buzón ---------------- */
+/* ------------------------------ inbox wizard --------------------------- */
 .wz-top{display:flex;align-items:center;gap:10px;margin:20px 0 16px}
 .wz-dots{display:flex;gap:5px}
 .wz-dot{width:26px;height:2px;background:#2e2e2e;border-radius:2px;transition:background .25s}
@@ -450,7 +450,7 @@ button.send:disabled{background:#242424;color:#5a5a5a}
 .sim-h .mono{font-size:9.5px;letter-spacing:1.1px;text-transform:uppercase}
 .sim-body{padding:14px 12px 16px}
 
-/* mini chat de la simulación */
+/* simulation mini chat */
 .sm-bubble{
   max-width:88%;background:#0d0d0d;border:1px solid var(--line);border-radius:9px;
   border-bottom-left-radius:3px;padding:8px 10px;font-size:12.5px;color:#dcdcdc;
@@ -518,6 +518,7 @@ details summary:hover{color:#fff}
   display:grid;place-items:center;font-family:var(--mono);font-size:10px;color:var(--dim);flex:0 0 auto;
 }
 .step.done .num{border-color:#fff;color:#fff}
+.step-sub{font-size:13px;color:var(--dim);line-height:1.55;margin-bottom:4px}
 .step .out{
   font-family:var(--mono);font-size:11px;background:#000;border:1px solid var(--line);
   border-radius:8px;padding:11px;white-space:pre-wrap;word-break:break-all;color:#9a9a9a;margin-top:12px;

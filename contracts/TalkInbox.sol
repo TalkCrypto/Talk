@@ -9,17 +9,17 @@ interface IERC20 {
 
 /**
  * @title TalkInbox
- * @notice Correo/chat pago entre wallets, cobrado en un único token ($TALK).
+ * @notice Paid mail/chat between wallets, charged in a single token ($TALK).
  *
- *  - Cada wallet activa su buzón con una llave pública de cifrado y un precio.
- *  - Escribir a alguien que cobra deja el pago en escrow dentro del contrato.
- *  - Si responde antes de 72h, el pago se reparte según su regla (devolver / quedárselo / 50-50).
- *  - Si no responde, cualquiera puede reembolsar al remitente (100%).
- *  - Tras la primera respuesta quedan como contactos y escribir es gratis para siempre.
- *  - Comisión Talk: 5% de lo que se queda el receptor. Nada sobre reembolsos ni mensajes gratis.
+ *  - Each wallet activates its inbox with an encryption public key and a price.
+ *  - Writing to someone who charges leaves the payment in escrow inside the contract.
+ *  - If they reply within 72h, the payment splits per their rule (refund / keep / 50-50).
+ *  - If they don't reply, anyone can refund the sender (100%).
+ *  - After the first reply they are contacts, and writing is free from then on.
+ *  - Talk fee: 5% of what the recipient keeps. Nothing on refunds or free messages.
  *
- *  El texto de los mensajes va cifrado por el cliente (NaCl box): este contrato solo
- *  guarda bytes opacos y nunca puede leerlos.
+ *  Message text is encrypted by the client (NaCl box): this contract only stores
+ *  opaque bytes and can never read them.
  */
 contract TalkInbox {
     enum Rule { Refund, Keep, Split }
@@ -27,10 +27,10 @@ contract TalkInbox {
 
     struct Inbox {
         bool registered;
-        bool open;      // true = cualquiera escribe gratis
-        Rule rule;      // qué pasa con el pago al responder
-        bytes32 encKey; // llave pública X25519 del dueño
-        uint256 price;  // precio para desconocidos, en $TALK (wei)
+        bool open;      // true = anyone writes for free
+        Rule rule;      // what happens to the payment on reply
+        bytes32 encKey; // owner's X25519 public key
+        uint256 price;  // price for strangers, in $TALK (wei)
     }
 
     struct Payment {
@@ -123,8 +123,8 @@ contract TalkInbox {
     /*                               send                                  */
     /* ------------------------------------------------------------------ */
 
-    /// @notice Manda un mensaje cifrado a `to`. Cobra según el buzón del destinatario.
-    /// @return paymentId 0 si fue gratis, o el id del pago en escrow.
+    /// @notice Sends an encrypted message to `to`. Charges per the recipient's inbox.
+    /// @return paymentId 0 when free, otherwise the id of the escrowed payment.
     function send(address to, bytes calldata ciphertext) external nonReentrant returns (uint256 paymentId) {
         if (to == msg.sender) revert SelfMessage();
         if (!inboxes[to].registered) revert NotRegistered();
@@ -153,7 +153,7 @@ contract TalkInbox {
     /*                              reply                                  */
     /* ------------------------------------------------------------------ */
 
-    /// @notice Responde a un pago pendiente y lo liquida. Solo el destinatario, antes de expirar.
+    /// @notice Replies to a pending payment and settles it. Recipient only, before expiry.
     function reply(uint256 paymentId, bytes calldata ciphertext) external nonReentrant {
         if (ciphertext.length > MAX_CIPHERTEXT) revert TooLong();
 
@@ -164,7 +164,7 @@ contract TalkInbox {
 
         p.status = Status.Settled;
 
-        // regla del que responde
+        // the replier's rule
         Rule rule = inboxes[p.to].rule;
         uint256 amount = p.amount;
         uint256 toRecipient;
@@ -187,7 +187,7 @@ contract TalkInbox {
         if (toRecipient > 0) _push(p.to, toRecipient);
         if (fee > 0) _push(treasury, fee);
 
-        // pasan a ser contactos: escribir entre ellos es gratis desde ahora
+        // they become contacts: writing between them is free from now on
         isContact[p.from][p.to] = true;
         isContact[p.to][p.from] = true;
 
@@ -201,7 +201,7 @@ contract TalkInbox {
     /*                             refund                                  */
     /* ------------------------------------------------------------------ */
 
-    /// @notice Devuelve el 100% al remitente si el plazo venció sin respuesta.
+    /// @notice Returns 100% to the sender if the deadline passed with no reply.
     function refund(uint256 paymentId) external nonReentrant {
         Payment storage p = payments[paymentId];
         if (p.status != Status.Pending) revert NotPending();
@@ -217,7 +217,7 @@ contract TalkInbox {
     /*                               views                                 */
     /* ------------------------------------------------------------------ */
 
-    /// @notice Cuánto cuesta escribir de `from` a `to` (0 = gratis).
+    /// @notice What it costs to write from `from` to `to` (0 = free).
     function quote(address from, address to) public view returns (uint256) {
         Inbox storage box = inboxes[to];
         if (!box.registered) return 0;
@@ -226,17 +226,17 @@ contract TalkInbox {
         return box.price;
     }
 
-    /// @notice Pagos pendientes y vencidos que se pueden reembolsar.
+    /// @notice Pending payments past their deadline that can be refunded.
     function isExpired(uint256 paymentId) external view returns (bool) {
         Payment storage p = payments[paymentId];
         return p.status == Status.Pending && block.timestamp > p.expiresAt;
     }
 
     /* ------------------------------------------------------------------ */
-    /*                            internos                                 */
+    /*                            internal                                 */
     /* ------------------------------------------------------------------ */
 
-    /// @dev Trae exactamente `amount` al contrato y verifica que llegó (protege contra fee-on-transfer).
+    /// @dev Pulls exactly `amount` into the contract and verifies it arrived (fee-on-transfer safety).
     function _pullExact(address from, uint256 amount) private {
         uint256 before = token.balanceOf(address(this));
         _safeCall(address(token), abi.encodeCall(IERC20.transferFrom, (from, address(this), amount)));
@@ -250,7 +250,7 @@ contract TalkInbox {
         _safeCall(address(token), abi.encodeCall(IERC20.transfer, (to, amount)));
     }
 
-    /// @dev Acepta tokens que devuelven bool o que no devuelven nada (USDT-like).
+    /// @dev Accepts tokens that return bool or return nothing at all (USDT-like).
     function _safeCall(address target, bytes memory data) private {
         (bool ok, bytes memory ret) = target.call(data);
         if (!ok) revert TransferFailed();

@@ -1,4 +1,4 @@
-// Prepara un estado realista sobre anvil para probar la UI de punta a punta.
+// Builds realistic state on anvil so the UI can be tested end to end.
 import fs from "node:fs";
 import path from "node:path";
 import { webcrypto, createHash } from "node:crypto";
@@ -38,7 +38,7 @@ async function txRet(from, to, data, gas = 8000000) {
   for (let i = 0; i < 300; i++) {
     const r = await rpc("eth_getTransactionReceipt", [h]);
     if (r) {
-      if (r.status !== "0x1") throw new Error("revirtió " + h);
+      if (r.status !== "0x1") throw new Error("reverted " + h);
       return r;
     }
     await new Promise(z => setTimeout(z, 40));
@@ -55,20 +55,20 @@ const art = n => {
 const acc = await rpc("eth_accounts", []);
 const [A, B, C, TREASURY] = acc;
 
-// --- firma fija → llave determinista (igual que hará el navegador con el stub)
+// --- fixed signature -> deterministic key (matches what the browser does with the stub)
 const SIG = "0x" + "ab".repeat(64) + "1b";
 const seed = new Uint8Array(createHash("sha256").update(Buffer.from(strip(SIG), "hex")).digest());
 const kp = nacl.box.keyPair.fromSecretKey(seed);
 const encKey = "0x" + Buffer.from(kp.publicKey).toString("hex");
 
-// --- desplegar token
+// --- deploy token
 const SUPPLY = 1_000_000n * UNIT;
 const nameE = encStr("Talk"), symE = encStr("TALK");
 const offName = 128, offSym = offName + nameE.length / 2;
 const tokenArgs = u256(offName) + u256(offSym) + u256(SUPPLY) + addr(A) + nameE + symE;
 const token = (await txRet(A, null, art("TalkToken") + tokenArgs)).contractAddress;
 
-// --- desplegar inbox
+// --- deploy inbox
 const inbox = (await txRet(A, null, art("TalkInbox") + addr(token) + addr(TREASURY))).contractAddress;
 const block = parseInt((await rpc("eth_blockNumber", [])), 16);
 
@@ -78,22 +78,22 @@ const SEL = {
 };
 const msg = tag => "0x01" + Buffer.from(tag.padEnd(40, ".")).toString("hex");
 
-// --- fondear B y C y aprobar
+// --- fund B and C, then approve
 for (const who of [B, C]) {
   await txRet(A, token, SEL.transfer + addr(who) + u256(10_000n * UNIT));
   await txRet(who, token, SEL.approve + addr(inbox) + u256(10_000n * UNIT));
 }
 
-// --- A activa su buzón: cobra 100 TALK, regla "me lo quedo"
+// --- A activates the inbox: charges 100 TALK, rule "keep it"
 await txRet(A, inbox, SEL.configure + u256(0) + u256(1) + strip(encKey).padStart(64, "0") + u256(100n * UNIT));
 
-// --- C activa el suyo: 0 (los contactos le escriben gratis tras responder)
+// --- C activates theirs: 0 (contacts write free after a reply)
 await txRet(C, inbox, SEL.configure + u256(0) + u256(1) + strip("0x" + "22".repeat(32)).padStart(64, "0") + u256(0n));
 
-// --- B escribe a A pagando (queda pendiente → la UI debe ofrecer "Responder y liquidar")
+// --- B writes to A paying (stays pending -> the UI should offer "Reply and settle")
 await txRet(B, inbox, SEL.send + addr(A) + u256(64) + encBytes(msg("Hola, vi tu token en pons")));
 
-// --- C escribe a A pagando, A responde: queda liquidado y como contactos
+// --- C writes to A paying, A replies: settled and now contacts
 await txRet(C, inbox, SEL.send + addr(A) + u256(64) + encBytes(msg("Che, te consulto por el launch")));
 const nextId = parseInt(await rpc("eth_call", [{ to: inbox, data: "0x61b8ce8c" }, "latest"]), 16);
 await txRet(A, inbox, SEL.reply + u256(nextId - 1) + u256(64) + encBytes(msg("Dale, decime")));

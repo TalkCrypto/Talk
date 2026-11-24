@@ -1,10 +1,10 @@
 /* =====================================================================
-   Talk — mensajes cifrados entre wallets, cobrados en $TALK.
-   Firma gratis → SHA-256 → NaCl box (X25519). El contrato solo ve bytes.
+   Talk — encrypted messaging between wallets, paid in $TALK.
+   Free signature → SHA-256 → NaCl box (X25519). The contract only sees bytes.
    ===================================================================== */
 "use strict";
 
-/* ----------------------------- configuración ----------------------------- */
+/* -------------------------------- config -------------------------------- */
 const CFG = Object.assign({}, window.TALK_CONFIG || {});
 CFG.chain = Object.assign({
   id: 4663, name: "Robinhood Chain",
@@ -30,7 +30,7 @@ const SYMBOL = CFG.symbol || "TALK";
 const DECIMALS = CFG.decimals || 18;
 const UNIT = 10n ** BigInt(DECIMALS);
 
-/* selectores keccak-256 (constantes de la ABI de Talk) */
+/* keccak-256 selectors (constants from the Talk ABI) */
 const SEL = {
   inboxes: "0x5cdd067d", payments: "0x87d81789", quote: "0x4a5aa711",
   isContact: "0x77e600fd", send: "0xc89acc86", reply: "0xb21faa4a",
@@ -46,8 +46,8 @@ const SIG_MSG = "Talk\n\n" +
   "This is free: it is not a transaction and costs no gas.\n\n" +
   "Key version: 1";
 
-const RULE_NAME = ["devolver", "quedármelo", "mitad y mitad"];
-const STATUS_LABEL = { 0: "—", 1: "en escrow", 2: "liquidado", 3: "reembolsado" };
+const RULE_NAME = ["refund it", "I keep it", "split it"];
+const STATUS_LABEL = { 0: "—", 1: "in escrow", 2: "settled", 3: "refunded" };
 
 /* ------------------------------- bytes ---------------------------------- */
 const strip0x = h => String(h || "").replace(/^0x/i, "").toLowerCase();
@@ -109,7 +109,7 @@ async function sha256(bytes) {
   return sha256Fallback(bytes);
 }
 
-/* ------------------------------ ABI mínimo ------------------------------- */
+/* --------------------------------- ABI ---------------------------------- */
 const pad32 = h => strip0x(h).padStart(64, "0");
 const u256 = v => BigInt(v).toString(16).padStart(64, "0");
 const asAddr = a => pad32(a);
@@ -125,7 +125,7 @@ const dynBytes = hexData => {
   return u256(len) + h.padEnd(Math.ceil(len / 32) * 32 * 2, "0");
 };
 
-/* -------------------------------- estado -------------------------------- */
+/* -------------------------------- state --------------------------------- */
 const S = {
   account: null, keyPair: null, me: null, peers: new Map(), contacts: new Set(),
   convs: [], active: null, msgs: [], all: [], payments: new Map(),
@@ -171,7 +171,7 @@ function compact(v) {
 }
 function parseUnits(s) {
   const t = String(s).trim();
-  if (!/^\d*\.?\d*$/.test(t) || t === "" || t === ".") throw new Error("monto inválido: " + s);
+  if (!/^\d*\.?\d*$/.test(t) || t === "" || t === ".") throw new Error("invalid amount: " + s);
   const [i, f = ""] = t.split(".");
   return BigInt(i || "0") * UNIT + BigInt((f + "0".repeat(DECIMALS)).slice(0, DECIMALS));
 }
@@ -258,7 +258,7 @@ function decodeMsg(l) {
   };
 }
 
-/* -------------------------------- cripto -------------------------------- */
+/* ------------------------------- crypto --------------------------------- */
 const keyId = a => "talk:enc:" + a.toLowerCase();
 
 async function deriveKeys(account) {
@@ -326,12 +326,12 @@ async function waitTx(hash) {
   for (let i = 0; i < 140; i++) {
     const r = await rpc("eth_getTransactionReceipt", [hash]);
     if (r) {
-      if (r.status === "0x0") throw new Error("la transacción revirtió");
+      if (r.status === "0x0") throw new Error("the transaction reverted");
       return r;
     }
     await new Promise(z => setTimeout(z, 1500));
   }
-  throw new Error("timeout esperando la transacción");
+  throw new Error("timed out waiting for the transaction");
 }
 async function runTx(label, build) {
   try {
@@ -342,8 +342,8 @@ async function runTx(label, build) {
     return true;
   } catch (e) {
     const m = e && (e.code === 4001 || /rejected|denied/i.test(e.message || ""))
-      ? "cancelaste en la wallet" : (e.shortMessage || e.message || String(e));
-    log("error: " + m, "err");
+      ? "You cancelled in your wallet." : (e.shortMessage || e.message || String(e));
+    log("Error: " + m, "err");
     return false;
   }
 }
@@ -369,14 +369,14 @@ function renderSocials() {
     const inner = `${ICONS[k] || ""}<span>${esc(label(k))}</span>`;
     return url
       ? `<a class="social" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${inner}</a>`
-      : `<span class="social off" title="configurá tu link en config.js">${inner}</span>`;
+      : `<span class="social off" title="add your link in config.js">${inner}</span>`;
   });
   els.socials.innerHTML = `<span class="lbl">redes</span>${items.join("")}`;
 }
 
-/* ------------------------------- render --------------------------------- */
+/* -------------------------------- render -------------------------------- */
 function renderHeader() {
-  if (els.addr) els.addr.innerHTML = S.account ? `<b>${short(S.account)}</b>` : "sin conectar";
+  if (els.addr) els.addr.innerHTML = S.account ? `<b>${short(S.account)}</b>` : "not connected";
   if (els.bal) els.bal.innerHTML = S.account ? `<b>${compact(S.balance)}</b> ${SYMBOL}` : "—";
 }
 
@@ -393,18 +393,18 @@ function renderStats() {
   set("stEscrow", compact(st.escrowIn + st.escrowOut) + " <small>" + SYMBOL + "</small>");
   set("stEarned", compact(st.earned) + " <small>" + SYMBOL + "</small>");
 
-  if (els.stBalSub) els.stBalSub.textContent = S.me && S.me.registered ? "buzón activo" : "buzón sin activar";
+  if (els.stBalSub) els.stBalSub.textContent = S.me && S.me.registered ? "inbox active" : "inbox not active";
   if (els.stMsgsSub) els.stMsgsSub.textContent = st.sent + " enviados · " + st.received + " recibidos";
   if (els.stEscrowSub) {
     const parts = [];
-    if (st.escrowIn > 0n) parts.push("cobrás " + fmt(st.escrowIn, { sym: false }));
-    if (st.escrowOut > 0n) parts.push("pagaste " + fmt(st.escrowOut, { sym: false }));
-    els.stEscrowSub.textContent = parts.length ? parts.join(" · ") : "nada retenido";
+    if (st.escrowIn > 0n) parts.push("incoming " + fmt(st.escrowIn, { sym: false }));
+    if (st.escrowOut > 0n) parts.push("outgoing " + fmt(st.escrowOut, { sym: false }));
+    els.stEscrowSub.textContent = parts.length ? parts.join(" · ") : "nothing held";
   }
-  if (els.stEarnedSub) els.stEarnedSub.textContent = st.contacts + " contactos · comisión " + (S.feeBps / 100) + "%";
+  if (els.stEarnedSub) els.stEarnedSub.textContent = st.contacts + " contacts · " + (S.feeBps / 100) + "% fee";
 }
 
-/* ------------------------- asistente del buzón -------------------------- */
+/* ------------------------------ the wizard ------------------------------ */
 const WZ = { step: 1, open: false, rule: 1, price: 120, editing: false };
 
 function wzPrefill(me) {
@@ -424,9 +424,9 @@ function wzShow(n) {
     d.classList.toggle("on", i === WZ.step - 1);
     d.classList.toggle("done", i < WZ.step - 1);
   });
-  if (els.wzLbl) els.wzLbl.textContent = "paso " + WZ.step + " de 3";
+  if (els.wzLbl) els.wzLbl.textContent = "step " + WZ.step + " of 3";
   if (els.wzBack) els.wzBack.disabled = WZ.step === 1;
-  if (els.wzNext) els.wzNext.textContent = WZ.step === 3 ? "Guardar buzón" : "Siguiente";
+  if (els.wzNext) els.wzNext.textContent = WZ.step === 3 ? "Save inbox" : "Next";
   wzSync();
 }
 
@@ -444,8 +444,8 @@ function wzSync() {
   });
   if (els.wzOpenHint) {
     els.wzOpenHint.textContent = WZ.open
-      ? "Con el buzón abierto, cualquiera escribe gratis. El precio queda dormido hasta que lo cierres."
-      : "Cada desconocido paga el precio que fijes. Los contactos siempre escriben gratis.";
+      ? "With an open inbox, anyone writes for free. Your price stays dormant until you close it."
+      : "Strangers pay your price. Contacts always write for free.";
   }
   wzSim();
   renderPass(
@@ -477,33 +477,33 @@ function wzSim() {
   const pct = v => (amount === 0n ? 0 : Number((v * 1000n) / amount) / 10);
   const free = amount === 0n;
   const note = WZ.open
-    ? "Buzón abierto: cualquiera escribe gratis. El precio no se cobra hasta que lo cierres."
+    ? "Open inbox: anyone writes for free. Your price is not charged until you close it."
     : free
-      ? "Gratis: nadie paga para escribirte. Los contactos siguen gratis para siempre."
+      ? "Free: nobody pays to reach you, and contacts stay free forever."
       : WZ.rule === 0
-        ? "Si respondés, le devolvés todo: cobrás 0. Si no responde en 72 h, igual vuelve."
+        ? "If you reply, they get it all back — you earn nothing. If they never write again, it still returns."
         : WZ.rule === 1
-          ? "Si respondés te quedás el pago menos el 5%. Si no responde en 72 h, vuelve entero."
-          : "Si respondés, la mitad vuelve y te quedás la otra mitad menos el 5%. Si no, vuelve entero.";
+          ? "If you reply you keep the payment minus 5%. If you don't reply in 72h, all of it goes back."
+          : "If you reply, half goes back and you keep the other half minus 5%. If you don't, all of it returns.";
 
   els.wzSim.innerHTML =
-    `<div class="sm-bubble"><div class="who">desconocido</div>` +
-    `Hola, vi tu token en pons y quería proponerte algo.</div>` +
-    `<div class="sm-line"><span class="sm-k">paga</span>` +
-    `<span class="sm-v">${free ? "nada" : fmt(amount)}</span></div>` +
+    `<div class="sm-bubble"><div class="who">a stranger</div>` +
+    `Hey — saw your token on pons. Wanted to run something by you.</div>` +
+    `<div class="sm-line"><span class="sm-k">pays</span>` +
+    `<span class="sm-v">${free ? "nothing" : fmt(amount)}</span></div>` +
     (free ? "" :
-      `<div class="sm-line"><span class="sm-k">te queda</span><span class="sm-v you">${fmt(you)}</span></div>` +
-      `<div class="sm-line"><span class="sm-k">comisión</span><span class="sm-v fee">${fmt(fee)}</span></div>` +
-      `<div class="sm-line"><span class="sm-k">le vuelve</span><span class="sm-v">${fmt(back)}</span></div>` +
+      `<div class="sm-line"><span class="sm-k">you keep</span><span class="sm-v you">${fmt(you)}</span></div>` +
+      `<div class="sm-line"><span class="sm-k">fee</span><span class="sm-v fee">${fmt(fee)}</span></div>` +
+      `<div class="sm-line"><span class="sm-k">goes back</span><span class="sm-v">${fmt(back)}</span></div>` +
       `<div class="sm-track">` +
       `<i class="you" style="width:${pct(you)}%"></i>` +
       `<i class="fee" style="width:${pct(fee)}%"></i>` +
       `<i class="back" style="width:${pct(back)}%"></i></div>` +
-      `<div class="sm-legend"><s>vos</s><s class="f">fee</s><s class="b">le vuelve</s></div>`) +
+      `<div class="sm-legend"><s>you</s><s class="f">fee</s><s class="b">goes back</s></div>`) +
     `<div class="sm-note">${note}</div>`;
 }
 
-/* ---- pase: el buzón dibujado como un ticket ---- */
+/* ---- pass: the inbox drawn as a ticket ---- */
 function barcode(hex) {
   const h = strip0x(hex || "0000");
   const bars = [];
@@ -525,14 +525,14 @@ function renderPass(v, live) {
   els.passPrice.textContent = num;
   if (els.passCur) els.passCur.textContent = SYMBOL;
   if (els.passStub) els.passStub.textContent = num;
-  if (els.passAddr) els.passAddr.textContent = S.account ? short(S.account) : "sin wallet";
-  if (els.passOpen) els.passOpen.textContent = box.open ? "cualquiera" : "solo contactos";
+  if (els.passAddr) els.passAddr.textContent = S.account ? short(S.account) : "no wallet";
+  if (els.passOpen) els.passOpen.textContent = box.open ? "anyone" : "contacts only";
   if (els.passRule) els.passRule.textContent =
-    ["devuelve todo", "−5% y me lo quedo", "mitad y mitad"][box.rule] || "—";
+    ["full refund", "keep it, less 5%", "split 50/50"][box.rule] || "—";
   if (els.passDesc) {
     els.passDesc.textContent = free
-      ? "cualquiera puede escribirte gratis"
-      : "por cada mensaje de una wallet desconocida";
+      ? "anyone can message you for free"
+      : "per message from a wallet you don't know";
   }
   if (els.passVig) els.passVig.textContent = Math.round((S.ttl || 72 * 3600) / 3600) + " h";
 
@@ -541,7 +541,7 @@ function renderPass(v, live) {
   if (els.passBar) els.passBar.innerHTML = barcode(key);
 
   if (els.boxBadge) {
-    els.boxBadge.textContent = box.registered ? "activo" : "borrador";
+    els.boxBadge.textContent = box.registered ? "active" : "draft";
     els.boxBadge.classList.toggle("on", !!box.registered);
   }
   const passEl = document.getElementById("pass");
@@ -551,8 +551,8 @@ function renderPass(v, live) {
 function renderBox() {
   if (els.footMeta) {
     els.footMeta.textContent = CFG.inbox
-      ? "contrato " + short(CFG.inbox) + " · sin audit"
-      : "sin audit";
+      ? "contract " + short(CFG.inbox) + " · not audited"
+      : "not audited";
   }
 
   if (!S.me) {
@@ -576,11 +576,11 @@ function renderBox() {
 
 function renderConvs() {
   if (!els.convs) return;
-  if (!S.convs.length) { els.convs.innerHTML = '<div class="empty">todavía nada</div>'; return; }
+  if (!S.convs.length) { els.convs.innerHTML = '<div class="empty">nothing yet</div>'; return; }
   els.convs.innerHTML = S.convs.map(c => {
     const on = S.active && S.active.toLowerCase() === c.address ? " on" : "";
-    const pv = c.preview ? esc(c.preview.slice(0, 44)) : "· cifrado ·";
-    const tag = c.pending ? ' <span class="tag pending">pago</span>' : "";
+    const pv = c.preview ? esc(c.preview.slice(0, 44)) : "· encrypted ·";
+    const tag = c.pending ? ' <span class="tag pending">payment</span>' : "";
     return `<div class="conv${on}" data-a="${c.address}">
       <div class="av">${c.address.slice(2, 4).toUpperCase()}</div>
       <div class="min">
@@ -591,7 +591,7 @@ function renderConvs() {
   els.convs.querySelectorAll(".conv").forEach(el => el.onclick = () => openThread(el.dataset.a));
 }
 
-/* ---- tiempos de bloque (cacheados) ---- */
+/* ---- block timestamps (cached) ---- */
 const times = new Map();
 
 async function loadTimes(blocks) {
@@ -608,22 +608,22 @@ const sameDay = (a, b) =>
   a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 function dayLabel(ts) {
   const d = new Date(ts * 1000), now = new Date();
-  if (sameDay(d, now)) return "hoy";
+  if (sameDay(d, now)) return "Today";
   const y = new Date(now); y.setDate(now.getDate() - 1);
-  if (sameDay(d, y)) return "ayer";
-  return d.toLocaleDateString("es", { day: "numeric", month: "short" });
+  if (sameDay(d, y)) return "Yesterday";
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
-const hhmm = ts => new Date(ts * 1000).toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" });
+const hhmm = ts => new Date(ts * 1000).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 const dayKey = ts => { const d = new Date(ts * 1000); return d.getFullYear() + "-" + d.getMonth() + "-" + d.getDate(); };
 
 function renderThread() {
   if (!els.msgs) return;
 
   if (!S.active) {
-    if (els.threadTitle) els.threadTitle.textContent = "Conversación";
-    if (els.threadMeta) els.threadMeta.textContent = "elegí a quién escribirle";
+    if (els.threadTitle) els.threadTitle.textContent = "Conversation";
+    if (els.threadMeta) els.threadMeta.textContent = "pick someone to write to";
     if (els.peerAv) els.peerAv.textContent = "—";
-    els.msgs.innerHTML = '<div class="empty">elegí una conversación</div>';
+    els.msgs.innerHTML = '<div class="empty">pick a conversation</div>';
     if (els.composer) els.composer.hidden = true;
     return;
   }
@@ -636,12 +636,12 @@ function renderThread() {
   if (els.threadTitle) els.threadTitle.textContent = short(S.active);
   if (els.threadMeta) {
     els.threadMeta.textContent = !peer || !peer.registered
-      ? "buzón inactivo"
-      : isContact ? "contacto · escribir es gratis" : peer.open ? "buzón abierto" : "cobra " + fmt(peer.price);
+      ? "inbox inactive"
+      : isContact ? "contact · free to write" : peer.open ? "open inbox" : "charges " + fmt(peer.price);
   }
 
   if (!S.msgs.length) {
-    els.msgs.innerHTML = '<div class="empty">sin mensajes todavía· escribí el primero</div>';
+    els.msgs.innerHTML = '<div class="empty">no messages yet · write the first one</div>';
   } else {
     const me = S.account.toLowerCase();
     const groups = [];
@@ -666,7 +666,7 @@ function renderThread() {
         const txt = m.plain !== undefined ? m.plain : (S.keyPair ? unseal(m.ct, peerKey) : null);
         parts.push(txt !== null
           ? `<div class="bub">${esc(txt)}</div>`
-          : `<div class="bub locked">bloqueado · ${strip0x(m.ct).length / 2} B</div>`);
+          : `<div class="bub locked">locked · ${strip0x(m.ct).length / 2} B</div>`);
 
         const p = S.payments.get(m.paymentId);
         if (p) {
@@ -696,29 +696,29 @@ async function renderComposer() {
   if (!peer || !peer.registered) {
     if (els.priceTag) els.priceTag.textContent = "—";
     if (els.btnSend) els.btnSend.disabled = true;
-    if (els.composerHint) els.composerHint.textContent = "Esa wallet todavía no activó su buzón.";
+    if (els.composerHint) els.composerHint.textContent = "That wallet has not activated an inbox yet.";
     return;
   }
   if (S.demo) {
     const isContact = S.contacts.has(S.active.toLowerCase());
     S.price = (isContact || peer.open) ? 0n : peer.price;
-    if (els.priceTag) els.priceTag.textContent = S.price === 0n ? "gratis" : fmt(S.price);
+    if (els.priceTag) els.priceTag.textContent = S.price === 0n ? "free" : fmt(S.price);
     if (els.btnSend) els.btnSend.disabled = false;
     if (els.composerHint) {
       els.composerHint.textContent = S.price === 0n
-        ? "Sin costo: ya son contactos o el buzón está abierto."
-        : `Queda en escrow 72 h. Si no responde, lo recuperás.`;
+        ? "Free — you are already contacts, or the inbox is open."
+        : "Held in escrow for 72h. If they don't reply, you get it back.";
     }
     return;
   }
   try {
     S.price = await readQuote(S.account, S.active);
-    if (els.priceTag) els.priceTag.textContent = S.price === 0n ? "gratis" : fmt(S.price);
+    if (els.priceTag) els.priceTag.textContent = S.price === 0n ? "free" : fmt(S.price);
     if (els.btnSend) els.btnSend.disabled = false;
     if (els.composerHint) {
       els.composerHint.textContent = S.price === 0n
-        ? "Sin costo: ya son contactos o el buzón está abierto."
-        : `Queda en escrow ${Math.round(S.ttl / 3600)} h. Si no responde, lo recuperás.`;
+        ? "Free — you are already contacts, or the inbox is open."
+        : `Held in escrow for ${Math.round(S.ttl / 3600)}h. If they don't reply, you get it back.`;
     }
   } catch (_) {
     if (els.priceTag) els.priceTag.textContent = "—";
@@ -742,7 +742,7 @@ function renderActions() {
     const p = S.payments.get(incoming.paymentId);
     const b = document.createElement("button");
     b.className = "solid sm";
-    b.textContent = "Responder y liquidar " + fmt(p.amount);
+    b.textContent = "Reply and settle " + fmt(p.amount);
     b.onclick = () => doSend(p.id);
     els.threadActions.appendChild(b);
   }
@@ -752,15 +752,15 @@ function renderActions() {
     const b = document.createElement("button");
     b.className = "sm";
     b.textContent = expired
-      ? "Reembolsar " + fmt(p.amount)
-      : "en escrow hasta " + new Date(p.expiresAt * 1000).toLocaleString();
+      ? "Refund " + fmt(p.amount)
+      : "in escrow until " + new Date(p.expiresAt * 1000).toLocaleString();
     b.disabled = !expired;
     b.onclick = () => doRefund(p.id);
     els.threadActions.appendChild(b);
   }
 }
 
-/* ------------------------------- acciones -------------------------------- */
+/* ------------------------------- actions -------------------------------- */
 async function refresh() {
   if (!S.account) return;
   const me = S.account.toLowerCase();
@@ -788,7 +788,7 @@ async function refresh() {
     }
   }
 
-  // estadísticas del dashboard
+  // dashboard metrics
   let earned = 0n, escrowIn = 0n, escrowOut = 0n, sent = 0, received = 0;
   const mine = new Set();
   for (const [id, p] of S.payments) {
@@ -833,7 +833,7 @@ async function refresh() {
   renderStats();
   renderConvs();
   if (S.active) await openThread(S.active);
-  log(S.all.length + " mensajes · " + S.convs.length + " conversaciones", "ok");
+  log(S.all.length + " messages · " + S.convs.length + " conversations", "ok");
 }
 
 async function openThread(addr) {
@@ -848,11 +848,11 @@ async function openThread(addr) {
 }
 
 async function doSave() {
-  if (!S.keyPair) { log("desbloqueá tu buzón primero", "err"); return; }
+  if (!S.keyPair) { log("Unlock your inbox first.", "err"); return; }
   try {
     const price = BigInt(WZ.price) * UNIT;
     const data = SEL.configure + u256(WZ.open ? 1 : 0) + u256(WZ.rule) + asAddr(myPub()) + u256(price);
-    if (await runTx("guardando buzón", () => ({ to: CFG.inbox, data }))) {
+    if (await runTx("Saving inbox", () => ({ to: CFG.inbox, data }))) {
       WZ.editing = false;
       WZ.ready = false;
       await refresh();
@@ -867,12 +867,12 @@ async function doSend(paymentId) {
   const peer = S.active.toLowerCase();
   try {
     const cfg = S.peers.get(peer);
-    if (!cfg || !cfg.registered) throw new Error("esa wallet no tiene buzón");
+    if (!cfg || !cfg.registered) throw new Error("that wallet has no inbox");
     const ct = seal(cfg.encKey, text);
 
     if (paymentId) {
       const data = SEL.reply + u256(paymentId) + u256(2 * 32) + dynBytes(ct);
-      if (await runTx("respondiendo", () => ({ to: CFG.inbox, data }))) {
+      if (await runTx("Replying", () => ({ to: CFG.inbox, data }))) {
         els.text.value = "";
         await refresh();
         renderThread();
@@ -884,15 +884,15 @@ async function doSend(paymentId) {
     if (price > 0n) {
       const allowed = wBig(words(await call(CFG.token, ERC20.allowance + asAddr(S.account) + asAddr(CFG.inbox)))[0]);
       if (allowed < price) {
-        log("aprobando " + fmt(price) + " (monto exacto)…", "warn");
-        if (!await runTx("aprobando", () => ({
+        log("Approving " + fmt(price) + " — exact amount only…", "warn");
+        if (!await runTx("Approving", () => ({
           to: CFG.token, data: ERC20.approve + asAddr(CFG.inbox) + u256(price)
         }))) return;
       }
     }
 
     const data = SEL.send + asAddr(peer) + u256(2 * 32) + dynBytes(ct);
-    if (await runTx(price > 0n ? "enviando · " + fmt(price) + " en escrow" : "enviando",
+    if (await runTx(price > 0n ? "Sending · " + fmt(price) + " into escrow" : "Sending",
         () => ({ to: CFG.inbox, data }))) {
       els.text.value = "";
       await refresh();
@@ -903,14 +903,14 @@ async function doSend(paymentId) {
 
 async function doRefund(id) {
   const data = SEL.refund + u256(id);
-  if (await runTx("reembolsando", () => ({ to: CFG.inbox, data }))) {
+  if (await runTx("Refunding", () => ({ to: CFG.inbox, data }))) {
     await refresh();
     renderThread();
   }
 }
 
-/* -------------------------------- demo ---------------------------------- */
-/* ?demo=1 — vista previa con datos de ejemplo, sin wallet ni despliegue. */
+/* --------------------------------- demo --------------------------------- */
+/* ?demo=1 — preview with sample data, no wallet and no deployment. */
 function setupDemo() {
   const ME = "0x9f3c2a7e15b84d0c6e2f9a1b3d5c7e8f0a2b4c6d";
   const P1 = "0x4a1e8c9d2b6f3a5c7e9d1b3f5a7c9e1d3b5f7a9c";
@@ -941,15 +941,15 @@ function setupDemo() {
   const stamp = () => (t += 3600 + Math.floor(Math.random() * 1200));
   S.all = [
     { id: 1, from: P1, to: ME, paymentId: 7, block: block++, logIndex: 0, tx: "0x1", ts: stamp(),
-      plain: "Hola — vi tu token en pons y me interesa el launch de la semana que viene." },
+      plain: "Hey — saw your token on pons. Interested in next week's launch." },
     { id: 2, from: ME, to: P2, paymentId: 0, block: block++, logIndex: 0, tx: "0x2", ts: stamp(),
-      plain: "¿Seguimos con lo de ayer? Te paso el deck actualizado." },
+      plain: "Are we still on for yesterday's thing? Sending the updated deck." },
     { id: 3, from: P2, to: ME, paymentId: 6, block: block++, logIndex: 0, tx: "0x3", ts: stamp(),
-      plain: "Dale. Lo miro y te digo. Gracias por el pago, no hacía falta." },
+      plain: "Sure. I'll take a look and get back to you. Thanks for the payment — you didn't have to." },
     { id: 4, from: ME, to: P1, paymentId: 0, block: block++, logIndex: 0, tx: "0x4", ts: stamp(),
-      plain: "Perfecto, te reservo 3 slots. Si querés te mando el contrato para revisar." },
+      plain: "Perfect — holding 3 slots for you. I can send the contract over if you want to review it." },
     { id: 5, from: P1, to: ME, paymentId: 0, block: block++, logIndex: 0, tx: "0x5", ts: stamp(),
-      plain: "Mandalo. Cualquier cosa te escribo por acá." }
+      plain: "Send it. I'll ping you here if anything comes up." }
   ];
   S.stats = {
     total: S.all.length, sent: 2, received: 3,
@@ -978,31 +978,31 @@ function setupDemo() {
   renderConvs();
   openThread(P1);
 
-  // ?demo=wizard → muestra el asistente como en un buzón sin activar
+  // ?demo=wizard → shows the wizard as it looks on a fresh inbox
   if (new URLSearchParams(location.search).get("demo") === "wizard") {
     S.me.registered = false;
     WZ.ready = false;
     renderBox();
-    log("vista previa del asistente · así se activa un buzón nuevo", "warn");
+    log("Wizard preview · this is how a new inbox gets activated", "warn");
     return;
   }
   renderBox();
-  log("vista previa con datos de ejemplo · conectá tu wallet para usar el buzón real", "warn");
+  log("Sample data preview · connect your wallet to use the real inbox", "warn");
 }
 
-/* ------------------------------- arranque -------------------------------- */
+/* -------------------------------- boot ---------------------------------- */
 async function connect() {
   if (!CFG.inbox || !CFG.token) {
     if (els.setupBanner) els.setupBanner.hidden = false;
-    log("falta configurar los contratos: desplegá primero", "err");
+    log("Contracts are not configured yet — deploy first.", "err");
     return;
   }
   if (!window.ethereum) {
-    log("no hay wallet en este navegador", "err");
+    log("No wallet detected in this browser.", "err");
     return;
   }
   try {
-    log("conectando…");
+    log("Connecting…");
     await ensureChain();
     const [acc] = await ethereum.request({ method: "eth_requestAccounts" });
     S.account = acc;
@@ -1012,20 +1012,20 @@ async function connect() {
 
     S.keyPair = loadKeys(acc);
     if (!S.keyPair) {
-      log("firmá el mensaje en tu wallet (gratis, sin gas)…", "warn");
+      log("Sign the message in your wallet — free, no gas…", "warn");
       S.keyPair = await deriveKeys(acc);
     }
 
     if (els.btnConnect) {
       els.btnConnect.textContent = "Re-firmar";
       els.btnConnect.onclick = async () => {
-        try { S.keyPair = await deriveKeys(S.account); log("llave regenerada ✔", "ok"); await refresh(); }
-        catch (e) { log("cancelado", "err"); }
+        try { S.keyPair = await deriveKeys(S.account); log("Key regenerated ✔", "ok"); await refresh(); }
+        catch (e) { log("Cancelled.", "err"); }
       };
     }
 
     await refresh();
-    log("conectado · comisión " + (S.feeBps / 100) + "% · escrow " + Math.round(S.ttl / 3600) + " h", "ok");
+    log("Connected · " + (S.feeBps / 100) + "% fee · " + Math.round(S.ttl / 3600) + "h escrow", "ok");
   } catch (e) {
     log("error: " + (e.shortMessage || e.message || e), "err");
   }
@@ -1056,10 +1056,10 @@ function initHero() {
     d.className = "hint";
     d.style.maxWidth = "52ch";
     d.innerHTML =
-      "<b>1.</b> Activás tu buzón con una firma gratis (no es transacción).<br>" +
-      "<b>2.</b> Ponés precio en $TALK. Un desconocido paga para escribirte.<br>" +
-      "<b>3.</b> El pago queda en el contrato, no con vos: si respondés en 72 h se libera, si no vuelve.<br>" +
-      "<b>4.</b> Después de responder son contactos: escribir es gratis para siempre.";
+      "<b>1.</b> You activate your inbox with one free signature — not a transaction.<br>" +
+      "<b>2.</b> You set a price in $TALK. A stranger pays to reach you.<br>" +
+      "<b>3.</b> The payment sits in the contract, not with you: release it by replying within 72h, or it returns.<br>" +
+      "<b>4.</b> After you reply you are contacts — writing is free from then on.";
     document.querySelector(".hero .actions")?.after(d);
   };
 }
