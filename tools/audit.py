@@ -39,7 +39,8 @@ def art(name):
 INBOX = art("TalkInbox")
 TOKEN = art("TalkToken")
 app_js = read(WEB / "app.js")
-index_html = read(WEB / "index.html")
+landing_html = read(WEB / "index.html")
+app_html = read(WEB / "app.html")
 styles_css = read(WEB / "styles.css")
 deploy_html = read(WEB / "deploy.html")
 artifacts_js = read(WEB / "artifacts.js")
@@ -106,13 +107,13 @@ check(msg_topic in app_js, "TOPIC_MSG matches keccak(Message(...))", msg_sig)
 check(settled_topic in app_js, "TOPIC_SETTLED matches keccak(Settled(...))", settled_sig)
 
 # ---------------------------------------------------------------- 4. HTML <-> JS
-ids_html = set(re.findall(r'id="([^"]+)"', index_html))
+ids_html = set(re.findall(r'id="([^"]+)"', app_html))
 els_block = re.search(r'const els = \{\};\s*\[(.*?)\]', app_js, re.S)
 els_ids = set(re.findall(r'"([^"]+)"', els_block.group(1))) if els_block else set()
 
 check(bool(els_ids), "app.js declares the element list", f"{len(els_ids)} ids")
 missing_in_html = sorted(els_ids - ids_html)
-check(not missing_in_html, "every id the JS uses exists in index.html",
+check(not missing_in_html, "every id the JS uses exists in app.html",
       ", ".join(missing_in_html) if missing_in_html else "ok")
 
 # ids del HTML que el JS nunca referencia (inofensivo, se reporta)
@@ -123,14 +124,21 @@ check(True, "HTML ids unused by app.js (informational)", ", ".join(unused_html) 
 stale = [s for s in ("fOpen", "fRule", "fPrice", "btnSave") if s in app_js]
 check(not stale, "no references to the old form", ", ".join(stale) or "limpio")
 
+# las dos páginas: landing pública y app
+check("app.html" in landing_html, "the landing links to the app")
+check('src="app.js"' in app_html and 'src="config.js"' in app_html,
+      "the app loads config.js and app.js")
+check('href="index.html"' in app_html, "the app links back to the landing")
+check('src="app.js"' not in landing_html, "the landing does not load the app bundle")
+
 # ---------------------------------------------------------------- 5. wizard
 for need in ("wzOpen", "wzRule", "wzPrice", "wzSim", "wzNext", "wzBack", "wzDots"):
     if need not in ids_html:
-        check(False, f"missing id {need} in index.html")
+        check(False, f"missing id {need} in app.html")
 check(all(n in ids_html for n in ("wzOpen", "wzRule", "wzPrice", "wzSim", "wzNext", "wzBack")),
       "the wizard has all its nodes in the HTML")
 
-pages = re.findall(r'class="wz-page" data-p="(\d)"', index_html)
+pages = re.findall(r'class="wz-page" data-p="(\d)"', app_html)
 check(pages == ["1", "2", "3"], "the wizard has all 3 steps", str(pages))
 
 # ---------------------------------------------------------------- 6. deploy
@@ -147,7 +155,7 @@ check(all(t in deploy_html for t in ("talk:cfg:token", "talk:cfg:inbox", "talk:c
 check("token:" in config_js and "inbox:" in config_js, "config.js exposes token and inbox")
 check("socials" in config_js, "config.js exposes the banner socials")
 # the dev harness must not activate without the query param
-harness = re.search(r'if \(location\.search\.indexOf\("dev=1"\) < 0\) return;', index_html)
+harness = re.search(r'if \(location\.search\.indexOf\("dev=1"\) < 0\) return;', app_html)
 check(bool(harness), "the dev harness is off by default")
 check("privateKey" not in app_js and "privateKey" not in deploy_html,
       "no private keys handled in the frontend")
@@ -163,7 +171,7 @@ missing_css = sorted(c for c in flat if c and ("." + c) not in styles_css and no
 check(True, "JS classes with no CSS rule (informational)", ", ".join(missing_css) or "ninguna")
 
 # declared typefaces
-check("fonts.googleapis.com" in index_html or "@font-face" in styles_css,
+check("fonts.googleapis.com" in landing_html or "@font-face" in styles_css,
       "the typefaces are loaded explicitly")
 
 # ---------------------------------------------------------------- 9. contratos: superficie

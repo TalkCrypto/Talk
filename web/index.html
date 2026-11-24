@@ -4,269 +4,237 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#000000">
-<title>Talk</title>
-<meta name="description" content="Private messages between wallets.">
+<title>Talk — private messages between wallets</title>
+<meta name="description" content="Messaging for wallets. Set a price, get paid to reply, and nobody reads what you write.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 </head>
-<body class="app-body">
+<body class="landing-body">
 
-<header class="topbar">
-  <div class="topbar-in">
-    <div class="brand"><span class="mark">T</span> Talk</div>
-    <span class="chip" id="bal">—</span>
+<header class="site-head">
+  <div class="site-head-in">
+    <a class="brand" href="index.html"><span class="mark">T</span> TALK</a>
+    <nav class="site-nav">
+      <a href="#product">Product</a>
+      <a href="app.html">Dashboard</a>
+      <a href="#tokenomics">Token</a>
+    </nav>
     <div class="grow"></div>
-    <button class="icon-btn" id="btnInbox" aria-label="Your inbox" title="Your inbox">
-      <svg viewBox="0 0 24 24" width="15" height="15"><path fill="currentColor" d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0 2c-4.4 0-8 2.2-8 5v1h16v-1c0-2.8-3.6-5-8-5z"/></svg>
-    </button>
-    <span class="chip" id="addr">not connected</span>
-    <button id="btnConnect" class="solid sm">Connect</button>
+    <div class="head-socials" id="headSocials"></div>
+    <a class="cta-line" href="app.html">OPEN TALK ↗</a>
   </div>
 </header>
 
-<main class="shell">
-  <div class="banner" id="setupBanner" hidden>
-    Talk isn't set up yet. <a href="deploy.html">Deploy the contracts →</a>
+<main>
+
+  <!-- ------------------------------ hero ------------------------------ -->
+  <section class="hero-grid">
+    <div class="hero-copy">
+      <div class="kicker">PRIVATE MESSAGING · PAID IN $TALK</div>
+      <h1>Say it<br><em>privately.</em></h1>
+      <p class="sub">
+        Messaging for wallets. Write to anyone, set your price, and let the payment wait in the
+        contract until you answer. Nobody reads it but the two of you.
+      </p>
+      <a class="cta-solid" href="app.html">LAUNCH APP <span>↗</span></a>
+
+      <div class="hero-stats">
+        <span><b>0</b> accounts</span>
+        <span><b>5%</b> fee</span>
+        <span><b>72h</b> escrow</span>
+        <span><b>$TALK</b> only</span>
+      </div>
+
+      <div class="hero-meta">
+        <span class="num">01</span><span class="of">/ 02</span>
+        <i class="bar on"></i><i class="bar"></i>
+      </div>
+    </div>
+
+    <div class="hero-art" aria-hidden="true">
+      <div class="art-frame">
+        <div class="art-bars" id="artBars"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ------------------------------ strap ------------------------------ -->
+  <div class="strap">
+    <div class="strap-in">
+      <span>PRIVATE MESSAGING</span><i>/</i>
+      <span>PAID IN $TALK</span><i>/</i>
+      <span>ENCRYPTED IN YOUR BROWSER</span><i>/</i>
+      <span>NO ACCOUNTS</span><i>/</i>
+      <span>NO SPAM</span><i>/</i>
+      <span>72H ESCROW</span><i>/</i>
+      <span>PRIVATE MESSAGING</span><i>/</i>
+      <span>PAID IN $TALK</span>
+    </div>
   </div>
 
-  <div class="app" id="app">
-    <!-- ---------------- conversations ---------------- -->
-    <aside class="side">
-      <div class="side-top">
-        <div class="avatar" id="meAv">—</div>
-        <div class="min">
-          <div class="me-name" id="meName">Your inbox</div>
-          <div class="me-sub" id="meSub">not connected</div>
-        </div>
-        <button class="icon-btn" id="btnInbox2" aria-label="Inbox settings" title="Inbox settings">
-          <svg viewBox="0 0 24 24" width="15" height="15"><path fill="currentColor" d="M12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7zm7.4-2.1.1-.9-.1-.9 2-1.6-1.9-3.3-2.4 1a7.5 7.5 0 0 0-1.6-.9l-.3-2.5H11l-.3 2.5c-.6.2-1.1.5-1.6.9l-2.4-1L4.8 10l2 1.6-.1.9.1.9-2 1.6 1.9 3.3 2.4-1c.5.4 1 .7 1.6.9l.3 2.5h3.9l.3-2.5c.6-.2 1.1-.5 1.6-.9l2.4 1 1.9-3.3z"/></svg>
-        </button>
+  <!-- --------------------------- index band --------------------------- -->
+  <nav class="index-band">
+    <div class="index-band-in">
+      <a href="#product">01. PRODUCT</a>
+      <i>—</i>
+      <a href="#tokenomics">02. TOKEN</a>
+      <i>—</i>
+      <a href="#policy">03. POLICY</a>
+      <i>—</i>
+      <a href="#faq">04. FAQ</a>
+    </div>
+  </nav>
+
+  <!-- --------------------------- 01 product --------------------------- -->
+  <section class="band" id="product">
+    <div class="band-in">
+      <div class="sec-kicker">01 / THE PRODUCT</div>
+      <h2>A quieter inbox.</h2>
+      <p class="sec-sub">
+        An inbox that costs something to enter. Not to punish anyone — to make the message matter.
+      </p>
+
+      <div class="caps">
+        <article class="cap">
+          <span class="cap-n">01</span>
+          <h3>Open your inbox</h3>
+          <p>One free signature. No forms, no email, no password — your wallet is the account.</p>
+        </article>
+        <article class="cap">
+          <span class="cap-n">02</span>
+          <h3>Set your price</h3>
+          <p>Strangers pay to reach you. The people you already know write for free, always.</p>
+        </article>
+        <article class="cap">
+          <span class="cap-n">03</span>
+          <h3>Answer, and it settles</h3>
+          <p>Reply and keep the payment. Stay silent and it goes back to them — you never hold their money.</p>
+        </article>
+        <article class="cap">
+          <span class="cap-n">04</span>
+          <h3>Encrypted, always</h3>
+          <p>Messages are sealed on your device before they leave it. The chain stores bytes it cannot read.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- -------------------------- 02 tokenomics ------------------------- -->
+  <section class="band band-alt" id="tokenomics">
+    <div class="band-in">
+      <div class="sec-kicker">02 / TOKENOMICS</div>
+      <h2>One token. No games.</h2>
+
+      <div class="tok-grid">
+        <div class="tok"><span class="tok-k">MAX SUPPLY</span><span class="tok-v">1,000,000,000</span><span class="tok-s">fixed at deploy, no mint</span></div>
+        <div class="tok"><span class="tok-k">TALK FEE</span><span class="tok-v">5%</span><span class="tok-s">of what you keep</span></div>
+        <div class="tok"><span class="tok-k">ESCROW</span><span class="tok-v">72 H</span><span class="tok-s">then anyone can refund</span></div>
+        <div class="tok"><span class="tok-k">ACCEPTED</span><span class="tok-v">$TALK</span><span class="tok-s">one token, nothing else</span></div>
       </div>
 
-      <div class="search">
-        <input id="search" placeholder="Search" autocomplete="off">
+      <p class="sec-sub tok-note">
+        The fee only touches what the recipient keeps. Refunds pay nothing, and once you've replied
+        you're contacts — those messages are free forever.
+      </p>
+    </div>
+  </section>
+
+  <!-- ---------------------------- 03 policy --------------------------- -->
+  <section class="band" id="policy">
+    <div class="band-in">
+      <div class="sec-kicker">03 / THE POLICY</div>
+      <h2>What you're getting.</h2>
+
+      <div class="trust">
+        <div class="tr"><h4>PRIVACY</h4><p>No sign-up, no email, no telemetry. Keys stay on your device and there is no data to sell.</p></div>
+        <div class="tr"><h4>CUSTODY</h4><p>Your money never sits in our wallets. The contract holds it and releases it by rule, with no withdraw function.</p></div>
+        <div class="tr"><h4>RESPECT</h4><p>No spam, because reaching you costs something. No surprises, because the fee ships with the contract.</p></div>
+        <div class="tr"><h4>OPEN</h4><p>The source is private until launch. Once launched, it's revealed in full — repository and contracts, verifiable by anyone.</p></div>
       </div>
+    </div>
+  </section>
 
-      <div class="chats" id="convs"></div>
+  <!-- ------------------------------ 04 faq ---------------------------- -->
+  <section class="band band-alt" id="faq">
+    <div class="band-in">
+      <div class="sec-kicker">04 / FAQ</div>
+      <h2>Questions.</h2>
 
-      <div class="side-foot">
-        <input id="newTo" placeholder="New chat — paste an address" autocomplete="off" spellcheck="false">
+      <div class="faq">
+        <details>
+          <summary>Do I need to deposit anything to open an inbox?</summary>
+          <p>No. Opening an inbox is a free signature — not a transaction. You only spend gas when you send or reply.</p>
+        </details>
+        <details>
+          <summary>Who holds the money while it's waiting?</summary>
+          <p>The contract, not us. It has no withdraw function, so the only funds that move are the ones the escrow dictates.</p>
+        </details>
+        <details>
+          <summary>What happens if I never answer?</summary>
+          <p>After 72 hours the sender gets it back. Anyone can trigger the refund; you don't have to be online and we can't block it.</p>
+        </details>
+        <details>
+          <summary>Can you read my messages?</summary>
+          <p>No. They're encrypted on your device with a key derived from your signature. What reaches the chain is bytes nobody can open without your wallet.</p>
+        </details>
+        <details>
+          <summary>Is the token live?</summary>
+          <p>Not yet. There's no sale, no presale and no contract address published. When that changes it's announced here.</p>
+        </details>
       </div>
-    </aside>
+    </div>
+  </section>
 
-    <!-- ---------------- chat ---------------- -->
-    <section class="chat">
-      <header class="chat-top">
-        <div class="avatar sm" id="peerAv">—</div>
-        <div class="min">
-          <div class="chat-name" id="threadTitle">Conversation</div>
-          <div class="chat-sub" id="threadMeta">pick someone to write to</div>
-        </div>
-        <div class="grow"></div>
-        <span class="pill-e2e" title="End-to-end encrypted">
-          <svg viewBox="0 0 24 24" width="10" height="10"><path fill="currentColor" d="M12 1a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-1V6a5 5 0 0 0-5-5zm0 2a3 3 0 0 1 3 3v3H9V6a3 3 0 0 1 3-3z"/></svg>
-          encrypted
-        </span>
-      </header>
+  <!-- ----------------------------- close ------------------------------ -->
+  <section class="close">
+    <div class="close-in">
+      <h2>Ready when you are.</h2>
+      <p>Open your inbox in about ten seconds.</p>
+      <a class="cta-solid" href="app.html">LAUNCH APP <span>↗</span></a>
+    </div>
+  </section>
 
-      <div id="msgs" class="msgs">
-        <div class="empty-chat">
-          <div class="empty-ic">
-            <svg viewBox="0 0 24 24" width="26" height="26"><path fill="currentColor" d="M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"/></svg>
-          </div>
-          <p>Pick a conversation, or start a new one below.</p>
-        </div>
-      </div>
-
-      <div class="thread-actions" id="threadActions"></div>
-
-      <footer class="composer" id="composer" hidden>
-        <div class="composer-bar">
-          <textarea id="text" rows="1" placeholder="Message" autocomplete="off"></textarea>
-          <button id="btnSend" class="send" aria-label="Send">
-            <svg viewBox="0 0 24 24" width="17" height="17"><path fill="currentColor" d="M3.4 20.6 21.8 12 3.4 3.4l.1 6.9 12 1.7-12 1.7z"/></svg>
-          </button>
-        </div>
-        <div class="composer-cost"><span id="composerHint"></span><div class="grow"></div><b id="priceTag">—</b></div>
-      </footer>
-    </section>
-  </div>
 </main>
 
-<!-- ---------------- your inbox ---------------- -->
-<div class="modal" id="inboxModal" hidden>
-  <div class="modal-card">
-    <div class="modal-head">
-      <h2 class="sheet-title">Your inbox</h2>
-      <div class="grow"></div>
-      <button class="icon-btn" id="btnCloseInbox" aria-label="Close">
-        <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L10.6 13.4 4.3 19.7 2.9 18.3 9.2 12 2.9 5.7 4.3 4.3l6.3 6.3 6.3-6.3z"/></svg>
-      </button>
-    </div>
-
-    <div class="sheet" id="boxSheet">
-      <div class="sheet-head">
-        <span class="sheet-badge" id="boxBadge">not active</span>
-      </div>
-
-      <div class="pass" id="pass">
-        <div class="pass-body">
-          <div class="pass-top">
-            <span class="pass-kicker">access pass</span>
-            <span class="pass-addr mono" id="passAddr">—</span>
-          </div>
-
-          <div class="pass-price">
-            <span class="pass-num" id="passPrice">—</span>
-            <span class="pass-cur" id="passCur">TALK</span>
-          </div>
-          <p class="pass-desc" id="passDesc">per message from a wallet you don't know</p>
-
-          <dl class="pass-rows">
-            <div><dt>who gets in</dt><dd id="passOpen">—</dd></div>
-            <div><dt>if you reply</dt><dd id="passRule">—</dd></div>
-            <div><dt>window</dt><dd id="passVig">72 h</dd></div>
-          </dl>
-        </div>
-
-        <div class="pass-stub">
-          <span class="pass-stub-lbl">price</span>
-          <span class="pass-stub-num" id="passStub">—</span>
-          <div class="barcode" id="passBar"></div>
-          <span class="pass-serial mono" id="passKey">····</span>
-        </div>
-      </div>
-
-      <div class="sheet-actions" id="boxActions" hidden>
-        <button id="btnEdit" class="btn-line">Edit pass</button>
-      </div>
-
-      <div id="boxForm" hidden>
-        <div class="wz-top">
-          <div class="wz-dots" id="wzDots">
-            <span class="wz-dot on"></span><span class="wz-dot"></span><span class="wz-dot"></span>
-          </div>
-          <span class="wz-lbl" id="wzLbl">step 1 of 3</span>
-        </div>
-
-        <div class="wz-page" data-p="1">
-          <h3 class="wz-h">Who can write to you?</h3>
-          <div class="choices" id="wzOpen">
-            <button class="choice" data-v="0">
-              <span class="mark"></span>
-              <span class="body">
-                <b>Contacts only</b>
-                <small>Strangers pay to get in. Keeps the noise out.</small>
-              </span>
-            </button>
-            <button class="choice" data-v="1">
-              <span class="mark"></span>
-              <span class="body">
-                <b>Anyone, free</b>
-                <small>Open inbox. Best if you're a creator and want to be reachable.</small>
-              </span>
-            </button>
-          </div>
-          <div class="hint" id="wzOpenHint"></div>
-        </div>
-
-        <div class="wz-page" data-p="2" hidden>
-          <h3 class="wz-h">When you reply, the payment…</h3>
-          <div class="choices" id="wzRule">
-            <button class="choice" data-v="0">
-              <span class="mark"></span>
-              <span class="body">
-                <b>goes back</b>
-                <small>You answer for free. You only get paid if you stay silent.</small>
-                <span class="flow"><i class="a" style="width:100%"></i></span>
-                <span class="flow-lbl">sender 100%</span>
-              </span>
-            </button>
-            <button class="choice" data-v="1">
-              <span class="mark"></span>
-              <span class="body">
-                <b>I keep it</b>
-                <small>You keep the payment minus Talk's 5%.</small>
-                <span class="flow"><i class="b" style="width:95%"></i></span>
-                <span class="flow-lbl">you 95% · fee 5%</span>
-              </span>
-            </button>
-            <button class="choice" data-v="2">
-              <span class="mark"></span>
-              <span class="body">
-                <b>split 50/50</b>
-                <small>Half goes back, you keep the other half minus 5%.</small>
-                <span class="flow"><i class="a" style="width:50%"></i><i class="b" style="width:45%"></i></span>
-                <span class="flow-lbl">sender 50% · you 45% · fee 5%</span>
-              </span>
-            </button>
-          </div>
-        </div>
-
-        <div class="wz-page" data-p="3" hidden>
-          <h3 class="wz-h">Price for strangers</h3>
-
-          <div class="price-row">
-            <input id="wzPrice" type="range" min="0" max="500" step="5" value="120">
-            <div class="price-val"><b id="wzPriceVal">120</b><span>TALK</span></div>
-          </div>
-
-          <div class="presets" id="wzPresets">
-            <button data-p="0">free</button>
-            <button data-p="50">50</button>
-            <button data-p="120">120</button>
-            <button data-p="250">250</button>
-          </div>
-
-          <div class="sim">
-            <div class="sim-h"><span class="tiny mono">how a stranger sees you</span></div>
-            <div class="sim-body" id="wzSim"></div>
-          </div>
-        </div>
-
-        <div class="wz-nav">
-          <button id="wzBack" class="sm" disabled>Back</button>
-          <div class="grow"></div>
-          <button id="wzNext" class="solid sm">Next</button>
-        </div>
-      </div>
-    </div>
-
-    <p class="modal-note" id="footMeta">not audited</p>
+<footer class="site-foot">
+  <div class="site-foot-in">
+    <a class="brand" href="index.html"><span class="mark">T</span> TALK</a>
+    <div class="grow"></div>
+    <span class="foot-note">ENCRYPTED IN YOUR BROWSER</span>
+    <span class="foot-note">PAID IN $TALK</span>
   </div>
-</div>
+</footer>
 
-<div id="log"></div>
-
-<script src="https://cdn.jsdelivr.net/npm/tweetnacl@1.0.3/nacl.min.js"></script>
+<script src="config.js"></script>
 <script>
-/* dev harness: only active with ?dev=1 (inert in production) */
 (function () {
-  if (location.search.indexOf("dev=1") < 0) return;
-  var q = new URLSearchParams(location.search);
-  if (q.get("token")) localStorage.setItem("talk:cfg:token", q.get("token"));
-  if (q.get("inbox")) localStorage.setItem("talk:cfg:inbox", q.get("inbox"));
-  if (q.get("from")) localStorage.setItem("talk:cfg:fromBlock", q.get("from"));
-  localStorage.setItem("talk:cfg:rpc", q.get("rpc") || "http://127.0.0.1:8546");
-  localStorage.setItem("talk:cfg:chainId", q.get("chainId") || "31337");
-  var ACCOUNT = q.get("account"), SIG = q.get("sig");
-  window.ethereum = {
-    isDevStub: true, on: function () {}, removeListener: function () {},
-    request: function (a) {
-      var m = a.method;
-      if (m === "eth_chainId") return Promise.resolve("0x7a69");
-      if (m === "eth_requestAccounts" || m === "eth_accounts") return Promise.resolve([ACCOUNT]);
-      if (m === "personal_sign") return Promise.resolve(SIG);
-      if (m === "wallet_switchEthereumChain" || m === "wallet_addEthereumChain") return Promise.resolve(null);
-      return Promise.reject(new Error("dev-stub: " + m));
+  /* barcode del hero: determinista, como el del pase */
+  const bars = document.getElementById("artBars");
+  if (bars) {
+    let out = "", seed = 0x9e3779b9;
+    for (let i = 0; i < 64; i++) {
+      seed = (seed * 1664525 + 1013904223) >>> 0;
+      if (i === 18 || i === 41) { out += `<i style="width:9px;margin-right:11px;height:100%"></i>`; continue; }
+      const w = 1 + (seed % 4), gap = 2 + ((seed >> 8) % 3);
+      out += `<i style="width:${w}px;margin-right:${gap}px;height:${i % 9 === 0 ? 46 : 100}%"></i>`;
     }
-  };
-  window.__TALK_DEV_STUB = true;
+    bars.innerHTML = out;
+  }
+
+  /* redes del config */
+  const CFG = window.TALK_CONFIG || {};
+  const s = CFG.socials || {};
+  const host = document.getElementById("headSocials");
+  if (!host) return;
+  const order = ["x", "telegram", "discord", "github", "site"];
+  const label = k => k === "site" ? (s.label || "web") : k === "x" ? (s.xHandle || "x") : k;
+  const items = order.filter(k => s[k]).map(k =>
+    `<a href="${s[k]}" target="_blank" rel="noopener noreferrer">${label(k)}</a>`);
+  host.innerHTML = items.join("");
+  if (!items.length) host.hidden = true;
 })();
 </script>
-<script src="config.js"></script>
-<script src="app.js"></script>
 </body>
 </html>
