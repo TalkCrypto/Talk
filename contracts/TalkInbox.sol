@@ -47,6 +47,7 @@ contract TalkInbox {
     uint256 public constant FORFEIT_BPS = 1000; // 10% kept by Talk when nobody replies
     uint256 public constant BPS = 10_000;
     uint256 public constant MAX_CIPHERTEXT = 4096;
+    uint256 public constant MAX_PRICE = 2_000_000 * 1e18;   // ceiling: 2M TALK per message
 
     uint256 public nextId = 1;
     uint256 public messageCount;   // monotonic message id, independent of payments
@@ -96,6 +97,7 @@ contract TalkInbox {
     /// @notice Open or close the inbox, publish the encryption key and set the price.
     function configure(bool open, bytes32 encKey, uint256 price) external {
         if (encKey == bytes32(0)) revert BadPrice();
+        if (price > MAX_PRICE) revert BadPrice();
         Inbox storage box = inboxes[msg.sender];
         box.registered = true;
         box.open = open;
@@ -107,6 +109,7 @@ contract TalkInbox {
 
     function setPrice(uint256 price) external {
         if (!inboxes[msg.sender].registered) revert NotRegistered();
+        if (price > MAX_PRICE) revert BadPrice();
         inboxes[msg.sender].price = price;
         emit PriceSet(msg.sender, price);
     }

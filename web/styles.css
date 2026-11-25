@@ -618,8 +618,8 @@ main.shell .banner{margin:0 0 2px}
 /* messages sit at the bottom, like any chat */
 .msgs > :first-child{margin-top:auto}
 #log{
-  position:fixed;left:50%;bottom:92px;transform:translateX(-50%);z-index:70;
-  max-width:min(560px,90vw);padding:9px 15px;border-radius:999px;
+  position:fixed;right:22px;bottom:22px;left:auto;transform:none;z-index:70;
+  max-width:min(420px,calc(100vw - 44px));padding:9px 15px;border-radius:10px;
   background:#141414;border:1px solid #262626;color:#cfcfcf;
   font-family:var(--mono);font-size:11px;letter-spacing:.2px;
   box-shadow:0 8px 24px rgba(0,0,0,.5);animation:pop .18s ease both;
@@ -873,3 +873,38 @@ header.topbar .brand{font-family:var(--mono);font-weight:600;font-size:13px;lett
 #holdChip{font-family:var(--mono);font-size:11px;color:var(--accent);border-color:rgba(126,240,168,.35)}
 
 .side-stats{padding:10px 14px;border-top:1px solid var(--line);font-family:var(--mono);font-size:10.5px;color:var(--faint);letter-spacing:.02em}
+
+.new-hint{font-size:11px;line-height:1.45;color:var(--faint);padding:0 4px;min-height:0}
+.new-hint.paid{color:#e8d9a8}.new-hint.free{color:var(--accent)}
+
+.new-addr{cursor:pointer}.new-addr .cav{background:rgba(126,240,168,.12);color:var(--accent);font-size:15px}
+.new-addr .rt{color:var(--accent)}
+
+/* botones chicos dentro de una fila: copiar / abrir */
+.mini{
+  font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;
+  padding:3px 8px;border-radius:6px;border:1px solid var(--line);background:transparent;
+  color:var(--dim);cursor:pointer;transition:.15s;line-height:1.4;
+}
+.mini:hover{color:var(--text);border-color:rgba(255,255,255,.28)}
+.mini.solid{background:var(--text);color:var(--ink);border-color:var(--text)}
+.mini.solid:hover{background:#fff}
+.addr-line{display:flex;align-items:center;gap:7px;margin-top:3px}
+.addr-line code{font-family:var(--mono);font-size:10.5px;color:var(--faint)}
+.new-addr{cursor:default}
+.new-addr .rmid{display:flex;flex-direction:column;gap:2px;min-width:0}
+.new-addr .rmid b{display:block;font-size:12.5px;font-weight:600;color:var(--text)}
+.new-addr .addr-line{display:flex;align-items:center;gap:8px}
+.new-addr .rside{display:flex;align-items:center;gap:6px}
+/* confirmación antes de pagar: las dos salidas, antes de firmar */
+.pay-confirm{border-top:1px solid var(--line);background:#0e0e10;padding:14px 18px}
+.pc-head{font-size:13px;color:var(--dim)}
+.pc-head b{color:var(--text);font-weight:600}
+.pc-msg{margin-top:6px;font-size:12px;color:var(--faint);font-style:italic}
+.pc-terms{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column;gap:7px}
+.pc-terms li{display:flex;gap:9px;align-items:flex-start;font-size:12.3px;color:var(--dim);line-height:1.45}
+.pc-terms i{flex:0 0 auto;width:6px;height:6px;border-radius:50%;margin-top:6px}
+.pc-terms i.ok{background:var(--accent)}
+.pc-terms i.no{background:#e0b341}
+.pc-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+.pc-steps{margin:10px 0 0;font-size:11.5px;line-height:1.5;color:var(--faint);border-left:2px solid rgba(255,255,255,.12);padding-left:10px}

@@ -10,11 +10,11 @@ window.TALK_CONFIG = {
   },
 
   // Deployment addresses (empty until you deploy).
-  token: "0x3476AFfa0f73aED50dc8bA0645965f992656f176",      // $TALK (ERC-20)
-  inbox: "0x09CbF9B06881630b681eCca7Df7fD54A0D45F80a",
-  inboxAbi: 1,   // 1 = deployed send(address,bytes) · 2 = send(address,uint256,bytes) with maxPrice      // TalkInbox
+  token: "0x29a248ebb20570f0730f7f2595b7abf1b9c8f0b2",      // $TALK (ERC-20)
+  inbox: "0x94afd1714c018e2d193ae5e83e5265cbeb1020a9",
+  inboxAbi: 2,   // 1 = deployed send(address,bytes) · 2 = send(address,uint256,bytes) with maxPrice      // TalkInbox
   curve: "",      // TalkCurve (primary sale) — TALK lanza por Pons, sin curva propia
-  fromBlock: 122633004,   // block where TalkInbox was deployed
+  fromBlock: 122910582,   // block where TalkInbox was deployed
 
   symbol: "TALK",
   decimals: 18,

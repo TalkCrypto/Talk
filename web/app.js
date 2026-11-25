@@ -143,7 +143,7 @@ const els = {};
  "wzBack","wzNext","convs","msgs","threadTitle","threadMeta","peerAv","composer","text","priceTag",
  "btnSend","threadActions","composerHint","log",
  "meAv","meName","meSub","btnInbox","btnInbox2","btnCloseInbox","inboxModal","search","newTo","footMeta","socials",
- "sideStats","holdChip","btnRename","renameRow","renameInput","renameSave","renameClear"]
+ "newToHint","sideStats","holdChip","btnRename","renameRow","renameInput","renameSave","renameClear"]
   .forEach(k => els[k] = $(k));
 
 function log(msg, kind = "") {
@@ -442,7 +442,7 @@ function renderStats() {
 
   const st = S.stats;
   const bits = [];
-  if (S.me && S.me.registered) bits.push(S.me.price > 0n ? fmt(S.me.price) + " per message" : "free to write");
+  if (S.me && S.me.registered) bits.push(S.me.open ? "open inbox — free to write" : (S.me.price > 0n ? fmt(S.me.price) + " per message" : "free to write"));
   else bits.push("inbox not set up");
   if (st.total) bits.push(st.total + (st.total === 1 ? " message" : " messages"));
   if (st.contacts) bits.push(st.contacts + (st.contacts === 1 ? " contact" : " contacts"));
@@ -619,12 +619,31 @@ function renderConvs() {
   const q = (S.filter || "").toLowerCase();
   const list = S.convs.filter(c => !q || c.address.toLowerCase().includes(q));
 
+  // Si lo que se escribió es una dirección, aparece la opción de escribirle, al lado, sin salir
+  // del buscador: la lista de conversaciones y "hablar con esta wallet" viven en el mismo lugar.
+  const typed = (S.filter || "").trim();
+  const isAddr = /^0x[0-9a-fA-F]{40}$/.test(typed);
+  const already = isAddr && list.some(c => c.address.toLowerCase() === typed.toLowerCase());
+  const writeRow = (isAddr && !already)
+    ? `<div class="row new-addr" data-addr="${typed}">
+         <span class="cav a2">+</span>
+         <div class="rmid">
+           <b>New conversation</b>
+           <span class="addr-line">
+             <code>${typed.slice(0, 8)}…${typed.slice(-6)}</code>
+             <button class="mini" data-copy="${typed}" title="Copy the full address">copy</button>
+           </span>
+         </div>
+         <div class="rside"><button class="mini solid" data-open="${typed}">open</button></div>
+       </div>`
+    : "";
+
   if (!list.length) {
-    els.convs.innerHTML = `<div class="empty-side">${S.convs.length ? "No matches" : "No conversations yet"}</div>`;
+    els.convs.innerHTML = writeRow || `<div class="empty-side">${S.convs.length ? "No matches" : "No conversations yet"}</div>`;
     return;
   }
 
-  els.convs.innerHTML = list.map(c => {
+  els.convs.innerHTML = writeRow + list.map(c => {
     const on = S.active && S.active.toLowerCase() === c.address ? " on" : "";
     const pv = c.preview ? esc(c.preview.slice(0, 60)) : "Encrypted message";
 
@@ -721,7 +740,7 @@ function renderThread() {
     els.threadMeta.textContent = (named ? short(S.active) + " · " : "") + (!peer || !peer.registered
       ? "no inbox yet"
       : isContact ? "contact — free to write"
-      : peer.open ? "open inbox"
+      : peer.open ? "open inbox — free to write"
       : fmt(peer.price) + " per message");
   }
 
@@ -755,6 +774,7 @@ function renderThread() {
         }
         return body + chip;
       }).join("");
+
   renderHoldChip();
 
       const av = g.out ? "" : `<div class="av">${S.active.slice(2, 4).toUpperCase()}</div>`;
@@ -939,7 +959,8 @@ async function doSave() {
   if (!S.keyPair) { log("Unlock your inbox first.", "err"); return; }
   try {
     const price = BigInt(WZ.price) * UNIT;
-    const data = SEL.configure + u256(WZ.open ? 1 : 0) + asAddr(myPub()) + u256(price);
+    const capped = price > 2000000n * 10n ** 18n ? 2000000n * 10n ** 18n : price;
+      const data = SEL.configure + u256(WZ.open ? 1 : 0) + asAddr(myPub()) + u256(capped);
     if (await runTx("Saving inbox", () => ({ to: CFG.inbox, data }))) {
       WZ.editing = false;
       WZ.ready = false;
@@ -949,6 +970,33 @@ async function doSave() {
   } catch (e) { log("error: " + e.message, "err"); }
 }
 
+/* Antes de gastar, la app explica las dos salidas posibles. Nadie debería descubrir el reparto
+   después de pagar. */
+function showPayConfirm(price, text) {
+  const box = document.getElementById("payConfirm");
+  if (!box) { S.skipConfirm = true; doSend(null); return; }
+
+  const fee = (price * BigInt(S.feeBps || 500)) / 10000n;
+  const keep = price - fee;
+  const back = (price * 90n) / 100n;
+  const forfeit = price - back;
+
+  document.getElementById("pcAmount").textContent = fmt(price) + " TALK";
+  document.getElementById("pcPeer").textContent = S.active;
+  document.getElementById("pcYes").textContent = "they reply → they keep " + fmt(keep) + ", Talk takes " + fmt(fee);
+  document.getElementById("pcNo").textContent = "no reply in " + Math.round((S.ttl || 259200) / 3600) + "h → " + fmt(back) + " comes back to you, " + fmt(forfeit) + " to Talk";
+  box.hidden = false;
+  document.getElementById("pcText").textContent = text.slice(0, 80);
+  const steps = document.getElementById("pcSteps");
+  if (steps) {
+    const allowed = S.allowance !== undefined ? S.allowance : null;
+    steps.textContent = "MetaMask will ask twice: allow exactly " + fmt(price) +
+      " TALK (the contract can never take more), then send the message.";
+  }
+
+  document.getElementById("pcCancel").onclick = () => { box.hidden = true; };
+  document.getElementById("pcGo").onclick = () => { box.hidden = true; S.skipConfirm = true; doSend(null); };
+}
 async function doSend(paymentId) {
   const text = els.text.value.trim();
   if (!text) return;
@@ -970,6 +1018,13 @@ async function doSend(paymentId) {
 
     const price = S.price || 0n;
     if (price > 0n) {
+      const bal = await readBalance(S.account);
+      if (bal < price) {
+        log("You need " + fmt(price) + " TALK and you have " + fmt(bal) + ". Get TALK before sending.", "err");
+        return;
+      }
+      if (!S.skipConfirm) { showPayConfirm(price, text); return; }
+      S.skipConfirm = false;
       const allowed = wBig(words(await call(CFG.token, ERC20.allowance + asAddr(S.account) + asAddr(CFG.inbox)))[0]);
       if (allowed < price) {
         log("Approving " + fmt(price) + " — exact amount only…", "warn");
@@ -1192,7 +1247,14 @@ function initWizard() {
   els.wzOpen?.querySelectorAll(".choice").forEach(b => {
     b.onclick = () => { WZ.open = b.dataset.v === "1"; wzSync(); };
   });
-  if (els.wzPrice) els.wzPrice.oninput = () => { WZ.price = Number(els.wzPrice.value); wzSync(); };
+  if (els.wzPrice) els.wzPrice.oninput = () => {
+    const max = 2000000;
+    let v = Number(els.wzPrice.value);
+    if (!isFinite(v) || v < 0) v = 0;
+    if (v > max) { v = max; els.wzPrice.value = String(max); log("The maximum price is 2,000,000 TALK.", "warn"); }
+    WZ.price = v;
+    wzSync();
+  };
   els.wzPresets?.querySelectorAll("button").forEach(b => {
     b.onclick = () => { WZ.price = Number(b.dataset.p); wzSync(); };
   });
@@ -1254,6 +1316,51 @@ function initShell() {
     if (e.key === "Escape") { els.renameRow.hidden = true; }
   });
 
+  // Al escribir o pegar una dirección completa, la app consulta el precio y lo dice ANTES de abrir
+  // el hilo: nadie debería enterarse del costo recién al intentar enviar.
+  let newToTimer = null;
+  // Delegación: la lista se repinta cada vez que escribís, así que los botones se escuchan
+  // desde el contenedor y no desde el nodo (antes el clic se perdía al re-renderizar).
+  els.convs?.addEventListener("click", async e => {
+    const openBtn = e.target.closest("[data-open]");
+    if (openBtn) {
+      e.preventDefault();
+      S.filter = "";
+      if (els.search) els.search.value = "";
+      openThread(openBtn.dataset.open);
+      return;
+    }
+    const copyBtn = e.target.closest("[data-copy]");
+    if (copyBtn) {
+      e.preventDefault();
+      try { await navigator.clipboard.writeText(copyBtn.dataset.copy); log("Address copied", "ok"); }
+      catch (_) { log("Could not copy — select it manually.", "err"); }
+    }
+  });
+  els.newTo?.addEventListener("input", () => {
+    clearTimeout(newToTimer);
+    newToTimer = setTimeout(async () => {
+      if (!els.newToHint) return;
+      const v = (els.newTo.value || "").trim();
+      if (!/^0x[0-9a-fA-F]{40}$/.test(v)) { els.newToHint.textContent = ""; els.newToHint.className = "new-hint"; return; }
+      if (!S.account) { els.newToHint.textContent = "Connect your wallet first."; return; }
+      if (v.toLowerCase() === S.account.toLowerCase()) { els.newToHint.textContent = "That's your own inbox."; return; }
+      els.newToHint.textContent = "checking the price…";
+      try {
+        const price = await readQuote(S.account, v);
+        if (price === 0n) {
+          els.newToHint.className = "new-hint free";
+          els.newToHint.textContent = "Free to write — inbox is open or you are already contacts. Press Enter.";
+        } else {
+          els.newToHint.className = "new-hint paid";
+          els.newToHint.textContent = "Costs " + fmt(price) + " TALK per message · held until they reply. Press Enter to open.";
+        }
+      } catch (_) {
+        els.newToHint.textContent = "No inbox on that address — nobody can be written to yet.";
+      }
+    }, 300);
+  });
+
   els.newTo?.addEventListener("keydown", e => {
     if (e.key !== "Enter") return;
     const v = e.target.value.trim();
@@ -1262,6 +1369,7 @@ function initShell() {
     S.filter = "";
     if (els.search) els.search.value = "";
     openThread(v);
+    if (els.newToHint) { els.newToHint.textContent = ""; els.newToHint.className = "new-hint"; }
   });
 }
 

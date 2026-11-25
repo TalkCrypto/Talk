@@ -68,6 +68,7 @@
 
       <div class="side-foot">
         <div class="side-stats" id="sideStats"></div>
+      <div class="new-hint" id="newToHint"></div>
       <input id="newTo" placeholder="New chat — paste an address" autocomplete="off" spellcheck="false">
       </div>
     </aside>
@@ -107,7 +108,20 @@
 
       <div class="thread-actions" id="threadActions"></div>
 
-      <footer class="composer" id="composer" hidden>
+          <div class="pay-confirm" id="payConfirm" hidden>
+      <div class="pc-head">Send <b id="pcAmount">—</b> to <span class="mono" id="pcPeer">—</span>?</div>
+      <div class="pc-msg" id="pcText"></div>
+      <p class="pc-steps" id="pcSteps"></p>
+      <ul class="pc-terms">
+        <li><i class="ok"></i><span id="pcYes"></span></li>
+        <li><i class="no"></i><span id="pcNo"></span></li>
+      </ul>
+      <div class="pc-actions">
+        <button class="sm" id="pcCancel">Cancel</button>
+        <button class="sm solid" id="pcGo">Pay &amp; send</button>
+      </div>
+    </div>
+<footer class="composer" id="composer" hidden>
         <div class="composer-bar">
           <textarea id="text" rows="1" placeholder="Message" autocomplete="off"></textarea>
           <button id="btnSend" class="send" aria-label="Send">
@@ -278,7 +292,7 @@
   } catch (_) {}
 })();
 </script>
-<script src="config.js?v=14"></script>
-<script src="app.js?v=14"></script>
+<script src="config.js?v=23"></script>
+<script src="app.js?v=23"></script>
 </body>
 </html>
