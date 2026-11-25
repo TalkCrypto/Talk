@@ -408,6 +408,23 @@
   </div>
 </footer>
 
+<script>
+/* One-time recovery from the old service worker: it was serving a stale app.js, which is why
+   "Connect" could fail with a message that no longer exists in the source. Runs once per browser. */
+(function () {
+  try {
+    if (!("serviceWorker" in navigator)) return;
+    if (localStorage.getItem("talk:sw-reset") === "4") return;
+    localStorage.setItem("talk:sw-reset", "4");
+    navigator.serviceWorker.getRegistrations()
+      .then(rs => Promise.all(rs.map(r => r.unregister())))
+      .then(() => (window.caches ? caches.keys() : []))
+      .then(ks => Promise.all((ks || []).map(k => caches.delete(k))))
+      .then(() => { if (navigator.serviceWorker.controller) location.reload(); })
+      .catch(() => {});
+  } catch (_) {}
+})();
+</script>
 <script src="config.js?v=10"></script>
 <script src="landing.js?v=10"></script>
 </body>
