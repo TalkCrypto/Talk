@@ -7,7 +7,7 @@
   const CFG = window.TALK_CONFIG || {};
   const CHAIN = Object.assign({
     id: 4663, name: "Robinhood Chain", rpc: "https://rpc.mainnet.chain.robinhood.com",
-    explorer: "https://robin.etherscan.io", nativeSymbol: "ETH"
+    explorer: "https://robinhoodchain.blockscout.com", nativeSymbol: "ETH"
   }, CFG.chain || {});
 
   const LS = {
@@ -18,7 +18,8 @@
   const SEL = {
     sold: "0x02c7e7af", supply: "0x047fc9aa", priceAt: "0x9dab2054",
     quoteBuy: "0x4beb394c", quoteSell: "0xa64190c4", buy: "0xd96a094a",
-    sell: "0xd79875eb", token: "0xfc0c546a", remaining: "0x3a0f08b2", fee: "0xbf333f2c"
+    sell: "0xd79875eb", token: "0xfc0c546a", remaining: "0x3a0f08b2", fee: "0xbf333f2c",
+    raised: "0xf0ea4bfc"
   };
   const ERC20 = {
     approve: "0x095ea7b3", allowance: "0xdd62ed3e", balanceOf: "0x70a08231", decimals: "0x313ce567"
@@ -87,7 +88,7 @@
       const price = await callBig(curve, SEL.priceAt + u256(sold));
 
       $("price").textContent = fmtEth(price);
-      $("raised").textContent = fmtEth(sold * price / 1000000000000000000n) + " ETH";
+      $("raised").textContent = fmtEth(await callBig(curve, SEL.raised)) + " ETH";
       $("left").textContent = fmtTok(supply - sold) + " TALK";
       $("soldLbl").textContent = fmtTok(sold) + " sold";
       const pct = supply > 0n ? Number((sold * 10000n) / supply) / 100 : 0;

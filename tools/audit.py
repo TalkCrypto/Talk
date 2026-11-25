@@ -7,7 +7,7 @@ import re
 import sys
 from pathlib import Path
 
-sys.path.insert(0, r"C:\Users\nonam\AppData\Local\Temp\nexus")
+sys.path.insert(0, str(Path(__file__).parent / "vendor"))
 from keccak import keccak256  # noqa: E402
 
 ROOT = Path(r"C:\Users\nonam\Desktop\PROYECTOS\Talk")
@@ -127,20 +127,35 @@ check(not stale, "no references to the old form", ", ".join(stale) or "limpio")
 
 # las dos páginas: landing pública y app
 check("app.html" in landing_html, "the landing links to the app")
-check('src="app.js"' in app_html and 'src="config.js"' in app_html,
+check(re.search(r'src="app\.js(\?v=\d+)?"', app_html) and re.search(r'src="config\.js(\?v=\d+)?"', app_html),
       "the app loads config.js and app.js")
 check('href="index.html"' in app_html, "the app links back to the landing")
 check('src="app.js"' not in landing_html, "the landing does not load the app bundle")
 
 # ---------------------------------------------------------------- 5. wizard
-for need in ("wzOpen", "wzRule", "wzPrice", "wzSim", "wzNext", "wzBack", "wzDots"):
+for need in ("wzOpen", "wzPrice", "wzSim", "wzNext", "wzBack", "wzDots"):
     if need not in ids_html:
         check(False, f"missing id {need} in app.html")
-check(all(n in ids_html for n in ("wzOpen", "wzRule", "wzPrice", "wzSim", "wzNext", "wzBack")),
+check(all(n in ids_html for n in ("wzOpen", "wzPrice", "wzSim", "wzNext", "wzBack")),
       "the wizard has all its nodes in the HTML")
 
 pages = re.findall(r'class="wz-page" data-p="(\d)"', app_html)
-check(pages == ["1", "2", "3"], "the wizard has all 3 steps", str(pages))
+check(pages == ["1", "2"], "the wizard has all 2 steps (the contract has no rule field)", str(pages))
+check("wzRule" not in app_html, "no rule step (the contract has fixed terms)")
+
+# ---------------------------------------------------------------- 6. codificacion vs ABI
+# inboxes(address) devuelve 4 palabras: registered, open, encKey, price
+ri = re.search(r"const readInbox = a => call\(CFG\.inbox, SEL\.inboxes \+ asAddr\(a\)\).then\(d => \{(.*?)\}\);", app_js, re.S)
+check(ri is not None, "app.js defines readInbox")
+if ri:
+    check("w[4]" not in ri.group(1) and "w[3]" in ri.group(1),
+          "readInbox reads the 4-word struct (no rule word)")
+# configure viaja con 3 palabras: open, encKey, price
+save = re.search(r"const data = (SEL\.configure .*?);", app_js, re.S)
+check(save is not None, "app.js defines the configure encoding")
+if save:
+    check("rule" not in save.group(1),
+          "doSave encodes configure(bool,bytes32,uint256) — no rule word")
 
 # ---------------------------------------------------------------- 6. deploy
 check("TALK_ARTIFACTS" in artifacts_js, "artifacts.js exposes TALK_ARTIFACTS")

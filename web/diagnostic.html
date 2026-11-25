@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Talk — wallet diagnostic</title>
+<style>
+  body { margin:0; background:#000; color:#f4f1ea; font-family:monospace; padding:30px; font-size:18px; line-height:1.7; }
+  .ok { color:#35d49a; } .bad { color:#ff6b6b; } .info { color:#d8d4c8; }
+  h1 { font-size:22px; color:#fff; }
+  .box { border:1px solid #333; border-radius:10px; padding:16px; margin:12px 0; }
+  button { background:#35d49a; border:0; color:#000; padding:12px 24px; border-radius:8px; font-size:16px; font-weight:600; }
+</style>
+</head>
+<body>
+<h1>Talk — wallet diagnostic</h1>
+<div class="box" id="report">reading wallet…</div>
+<button onclick="run()">Re-run diagnostic</button>
+
+<script>
+function fmt(x) { return "<span class='" + (x.ok ? "ok" : "bad") + "'>" + x.txt + "</span>"; }
+async function run() {
+  const out = [];
+  const hasEth = !!window.ethereum;
+  out.push(fmt({ ok: hasEth, txt: "1. wallet detectada: " + (hasEth ? (window.ethereum.isMetaMask ? "MetaMask" : window.ethereum.isCoinbase ? "Coinbase" : window.ethereum.isTrust ? "Trust" : window.ethereum.isRabby ? "Rabby" : "otra") : "NO — no hay wallet en este navegador") }));
+  if (!hasEth) { document.getElementById("report").innerHTML = out.join("<br>"); return; }
+
+  let cid = null;
+  try { cid = await ethereum.request({ method: "eth_chainId" }); out.push(fmt({ ok: cid === "0x1237", txt: "2. cadena actual de la wallet: " + cid + (cid === "0x1237" ? " (Robinhood Chain ✓)" : " ← NO es Robinhood (4663). Esta es la causa del error: cambiá de red adentro de la wallet") })); }
+  catch (e) { out.push(fmt({ ok: false, txt: "2. eth_chainId falló: " + e.message })); }
+
+  try { const acc = await ethereum.request({ method: "eth_accounts" }); out.push(fmt({ ok: acc && acc.length > 0, txt: "3. cuentas visibles: " + (acc && acc.length ? acc[0] : "ninguna — la wallet está bloqueada o no autorizada") })); }
+  catch (e) { out.push(fmt({ ok: false, txt: "3. eth_accounts falló: " + e.message })); }
+
+  try { await ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: "0x1237" }] }); out.push(fmt({ ok: true, txt: "4. switch a Robinhood Chain: OK" })); }
+  catch (e) {
+    out.push(fmt({ ok: false, txt: "4. switch falló: código " + e.code + " — '" + (e.message || "") + "'" }));
+    try { await ethereum.request({ method: "wallet_addEthereumChain", params: [{ chainId: "0x1237", chainName: "Robinhood Chain", nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 }, rpcUrls: ["https://rpc.mainnet.chain.robinhood.com"], blockExplorerUrls: ["https://robinhoodchain.blockscout.com"] }] }); out.push(fmt({ ok: true, txt: "5. wallet_addEthereumChain: OK — la red quedó agregada. Volvé a la app y conectá." })); }
+    catch (e2) { out.push(fmt({ ok: false, txt: "5. add falló: código " + e2.code + " — '" + (e2.message || "") + "'" })); }
+  }
+  document.getElementById("report").innerHTML = out.join("<br>");
+}
+window.addEventListener("load", run);
+</script>
+</body>
+</html>

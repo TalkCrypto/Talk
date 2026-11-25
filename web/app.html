@@ -9,6 +9,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="manifest" href="manifest.json">
+<meta property="og:title" content="Talk — your inbox">
+<meta property="og:description" content="Encrypted messaging between wallets. A stranger pays $TALK to reach you — reply in 72h, keep 95%. No accounts, no backend.">
+<meta property="og:image" content="https://talkwhitall.com/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://talkwhitall.com/og-image.png">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body class="app-body">
@@ -19,6 +26,7 @@
     <nav class="site-nav">
       <a href="index.html#product">Product</a>
       <a href="app.html" class="on">Dashboard</a>
+      <a href="whitepaper.html">Whitepaper</a>
       <a href="index.html#tokenomics">Token</a>
     </nav>
     <div class="grow"></div>
@@ -161,9 +169,9 @@
       <div id="boxForm" hidden>
         <div class="wz-top">
           <div class="wz-dots" id="wzDots">
-            <span class="wz-dot on"></span><span class="wz-dot"></span><span class="wz-dot"></span>
+            <span class="wz-dot on"></span><span class="wz-dot"></span>
           </div>
-          <span class="wz-lbl" id="wzLbl">step 1 of 3</span>
+          <span class="wz-lbl" id="wzLbl">step 1 of 2</span>
         </div>
 
         <div class="wz-page" data-p="1">
@@ -188,39 +196,6 @@
         </div>
 
         <div class="wz-page" data-p="2" hidden>
-          <h3 class="wz-h">When you reply, the payment…</h3>
-          <div class="choices" id="wzRule">
-            <button class="choice" data-v="0">
-              <span class="mark"></span>
-              <span class="body">
-                <b>goes back</b>
-                <small>You answer for free. You only get paid if you stay silent.</small>
-                <span class="flow"><i class="a" style="width:100%"></i></span>
-                <span class="flow-lbl">sender 100%</span>
-              </span>
-            </button>
-            <button class="choice" data-v="1">
-              <span class="mark"></span>
-              <span class="body">
-                <b>I keep it</b>
-                <small>You keep the payment minus Talk's 5%.</small>
-                <span class="flow"><i class="b" style="width:95%"></i></span>
-                <span class="flow-lbl">you 95% · fee 5%</span>
-              </span>
-            </button>
-            <button class="choice" data-v="2">
-              <span class="mark"></span>
-              <span class="body">
-                <b>split 50/50</b>
-                <small>Half goes back, you keep the other half minus 5%.</small>
-                <span class="flow"><i class="a" style="width:50%"></i><i class="b" style="width:45%"></i></span>
-                <span class="flow-lbl">sender 50% · you 45% · fee 5%</span>
-              </span>
-            </button>
-          </div>
-        </div>
-
-        <div class="wz-page" data-p="3" hidden>
           <h3 class="wz-h">Price for strangers</h3>
 
           <div class="price-row">
@@ -253,9 +228,12 @@
   </div>
 </div>
 
+<div class="socials" id="socials" style="justify-content:center;padding:0 0 32px"></div>
+
 <div id="log"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/tweetnacl@1.0.3/nacl.min.js"></script>
+<script>navigator.serviceWorker && navigator.serviceWorker.register("sw.js").catch(() => {});</script>
 <script>
 /* dev harness: only active with ?dev=1 (inert in production) */
 (function () {
@@ -281,7 +259,7 @@
   window.__TALK_DEV_STUB = true;
 })();
 </script>
-<script src="config.js"></script>
-<script src="app.js"></script>
+<script src="config.js?v=10"></script>
+<script src="app.js?v=10"></script>
 </body>
 </html>

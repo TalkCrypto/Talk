@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300..700&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; background: #000; width: 1200px; height: 630px; overflow: hidden; }
+  #og { width: 1200px; height: 630px; background: #000; color: #fff; position: relative;
+        font-family: Geist, sans-serif; overflow: hidden; }
+  .frame { position: absolute; inset: 24px; border: 1px solid rgba(255,255,255,.25); }
+  .kicker { position: absolute; top: 58px; left: 72px; font-size: 14px; letter-spacing: .35em;
+            color: rgba(255,255,255,.55); text-transform: uppercase; }
+  .mark { position: absolute; top: 70px; right: 72px; width: 110px; height: 110px; }
+  h1 { position: absolute; top: 130px; left: 70px; margin: 0; font-family: "Instrument Serif", Georgia, serif;
+       font-weight: 400; font-size: 88px; line-height: 1.02; letter-spacing: -0.01em; }
+  h1 em { font-style: italic; color: #fff; }
+  .sub { position: absolute; top: 370px; left: 72px; font-size: 24px; font-weight: 300;
+         color: rgba(255,255,255,.78); max-width: 820px; line-height: 1.35; }
+  .row { position: absolute; bottom: 54px; left: 72px; right: 72px; display: flex;
+         gap: 16px; align-items: center; }
+  .chip { border: 1px solid rgba(255,255,255,.4); border-radius: 999px; padding: 9px 20px;
+          font-size: 16px; color: rgba(255,255,255,.85); }
+  .mono { font-family: monospace; color: rgba(255,255,255,.5); font-size: 14px; margin-left: auto; }
+</style>
+</head>
+<body>
+<div id="og">
+  <div class="frame"></div>
+  <div class="kicker">TALK · ENCRYPTED MESSAGING</div>
+  <svg class="mark" viewBox="0 0 64 64">
+    <rect width="64" height="64" rx="12" fill="#000"/>
+    <rect x="12" y="13" width="40" height="35" rx="6" fill="none" stroke="#fff" stroke-width="3"/>
+    <path d="M 21 48 L 21 57 L 30 48" fill="#000" stroke="#fff" stroke-width="3" stroke-linejoin="round"/>
+    <text x="32" y="41" text-anchor="middle" font-family="Georgia, serif" font-size="26" fill="#fff">T</text>
+  </svg>
+  <h1>Make a message<br>worth <em>answering.</em></h1>
+  <p class="sub">Encrypted messaging between wallets. A stranger pays $TALK to reach you —
+     reply in 72h, keep 95%. No accounts, no backend. Live on Robinhood Chain.</p>
+  <div class="row">
+    <span class="chip">@Talkwhitall</span>
+    <span class="chip">Fair launch on Pons</span>
+    <span class="mono">chain 4663 · verified contracts</span>
+  </div>
+</div>
+</body>
+</html>

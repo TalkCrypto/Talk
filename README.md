@@ -13,15 +13,15 @@ in the path.
 | | |
 |---|---|
 | Contracts | compile with `solc 0.8.26` (optimizer, 200 runs) |
-| Static audit | **30/30** (`tools/audit.py`: selectors, topics, ABI, ids, artifacts) |
-| Contract tests | **47/47** on a local EVM node (anvil), with test money moving |
-| Frontend tests | **37/37** (crypto, ABI encoding, event decoding) |
+| Static audit | **47/47** (`tools/audit.py`: selectors, topics, ABI, struct shape, ids, artifacts) |
+| Contract tests | **36/36** on a local EVM node (anvil), with test money moving |
+| Frontend tests | **39/39** (crypto, ABI encoding, event decoding) |
 | External audit | **none** — keep amounts small |
 
-What the tests actually cover: activating an inbox, sending a paid message, settling under all
-three rules, contacts going free, expiry plus refund after 72 hours, the open inbox, and the eight
-failure cases we expect (self-message, unregistered inbox, double reply, early refund, oversized
-payload, and so on).
+What the tests actually cover: activating an inbox, sending a paid message, settling (95/5 on
+reply), contacts going free, expiry plus refund after 72 hours (90/10), the open inbox, double
+reply, refunding a settled payment, and the other failure cases we expect (self-message,
+unregistered inbox, oversized payload, and so on).
 
 ---
 
@@ -33,15 +33,16 @@ stranger ──pays X TALK──▶ contract (escrow)
                  ┌───────────┴────────────┐
            replies within 72h        no reply
                  │                        │
-     split per the inbox rule      anyone can refund
-     (refund / keep / 50-50)        → 100% goes back
+     recipient keeps X minus 5%     anyone can refund
+     (Talk takes 5%)                → 90% goes back, 10% stays
                  │
          they are contacts: free forever
 ```
 
 - **Fee:** 5% of what the recipient keeps, paid to the treasury. Refunds and free messages pay nothing.
 - **Payment states:** `1` in escrow · `2` settled · `3` refunded.
-- **Reply rules:** `0` refund everything · `1` keep it (minus 5%) · `2` split 50/50.
+- **No reply within 72h:** the sender gets 90% back and Talk keeps 10% — the forfeit is the spam filter.
+- **One price, two outcomes.** There is no rule menu: the terms are the same for every inbox.
 
 ### Encryption
 
@@ -181,8 +182,9 @@ column — 1px rules, lists, and one printed object.
 - **The inbox is a pass.** Not a form: a white ticket with the perforation, the price in large
   serif numerals, terms with dot leaders, and on the stub the price, a barcode generated from your
   `encKey`, and the serial. If it isn't issued yet it shows as a **draft**.
-- **Three-step wizard** to issue the pass: each choice updates the ticket live (price, rule, who
-  gets in), with an exact split simulation.
+- **Three-step wizard** → **two-step wizard** to issue the pass: each choice updates the ticket
+  live (price, who gets in), with an exact split simulation. The reply terms are fixed by the
+  contract and shown as such.
 - **Conversations** as a ruled list; the active one gets a white bar on the left.
 - **Thread:** grouped by sender, day separators, real block timestamps, payment chips by state, and
   your own bubbles in white.
@@ -211,14 +213,13 @@ column — 1px rules, lists, and one printed object.
 
 ---
 
-## Compared to Nexus Mail
+## Compared to other wallet mail apps
+Same messaging idea, but Talk runs its own stack:
 
-Same messaging protocol (documented in `../sobre-mail/README.md`), but:
-
-| | Nexus Mail | Talk |
+| | Typical wallet mail | Talk |
 |---|---|---|
 | Contract | third-party, already deployed | yours |
-| Currency | PONS or ETH | **$TALK only** |
-| 5% fee | goes to Nexus treasury | **goes to your treasury** |
+| Currency | multi-asset | **$TALK only** |
+| 5% fee | goes to someone else's treasury | **goes to your treasury** |
 | Payment logic | multi-asset | single token, less gas |
-| Interface | full app with a radar | dashboard focused on the inbox |
+| Interface | full app | dashboard focused on the inbox |

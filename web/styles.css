@@ -864,3 +864,5 @@ header.topbar .brand{font-family:var(--mono);font-weight:600;font-size:13px;lett
 }
 .rename-row input:focus{border-color:#3d3d40;box-shadow:none}
 .rename-row button{flex:0 0 auto}
+/* settle: línea verde del momento en que el escrow se liquida */
+.sysline{display:inline-block;margin-top:6px;padding:4px 12px;border-radius:999px;background:rgba(0,200,120,.12);border:1px solid rgba(0,200,120,.45);color:#35d49a;font-size:12.5px}

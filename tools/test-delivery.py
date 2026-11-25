@@ -11,7 +11,9 @@ import sys
 import time
 import urllib.request
 
-sys.path.insert(0, r"C:\Users\nonam\AppData\Local\Temp\nexus")
+import os
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "vendor"))
 from keccak import keccak256  # noqa: E402
 
 RPC = "http://127.0.0.1:8546"

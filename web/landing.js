@@ -164,7 +164,7 @@
     site: '<svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm6.9 6h-2.9a15 15 0 0 0-1.2-3.4A8 8 0 0 1 18.9 8zM12 4.2c.5.7 1 1.9 1.4 3.8h-2.8c.4-1.9.9-3.1 1.4-3.8zM4.3 14a8 8 0 0 1 0-4h3.3a21 21 0 0 0 0 4zm.8 2h2.9c.3 1.2.7 2.4 1.2 3.4A8 8 0 0 1 5.1 16zm2.9-8H5.1a8 8 0 0 1 4.1-3.4A15 15 0 0 0 8 8zM12 19.8c-.5-.7-1-1.9-1.4-3.8h2.8c-.4 1.9-.9 3.1-1.4 3.8zM14.6 14H9.4a19 19 0 0 1 0-4h5.2a19 19 0 0 1 0 4zm.6 5.4c.5-1 .9-2.2 1.2-3.4h2.9a8 8 0 0 1-4.1 3.4zm1.6-5.4a21 21 0 0 0 0-4h3.3a8 8 0 0 1 0 4z"/></svg>'
   };
 
-  const order = ["x", "telegram", "discord", "github", "site"];
+  const order = ["x", "github", "site"];
   const label = k => k === "site" ? (s.label || "web") : k === "x" ? (s.xHandle || "x") : k;
   const link = (k, cls) => {
     const inner = ICONS[k] || "";
@@ -173,7 +173,7 @@
       : `<span class="${cls} off" title="${label(k)} — not set">${inner}</span>`;
   };
 
-  const hud = document.getElementById("hudSocials");
+  const hud = document.getElementById("headSocials");
   if (hud) hud.innerHTML = order.map(k => link(k, "")).join("");
 
   const foot = document.getElementById("footSocials");

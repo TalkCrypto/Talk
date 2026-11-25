@@ -9,7 +9,9 @@ import sys
 import time
 import urllib.request
 
-sys.path.insert(0, r"C:\Users\nonam\AppData\Local\Temp\nexus")
+import os
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "vendor"))
 from keccak import keccak256  # noqa: E402
 
 RPC = "http://127.0.0.1:8546"
@@ -228,11 +230,19 @@ check(C != A and w(call(INBOX, S["quote"] + addr(C) + addr(A)), 0) == 100 * UNIT
 print("\n5. expected failures")
 expect_revert(lambda: send(B, INBOX, S["send"] + addr(B) + u256(64) + bytes_arg(ct())), "messaging yourself reverts")
 expect_revert(lambda: send(B, INBOX, S["send"] + addr(C) + u256(64) + bytes_arg(ct())), "sending to a wallet with no inbox reverts")
-expect_revert(lambda: send(B, INBOX, S["reply"] + u256(2) + u256(64) + bytes_arg(ct())), "replying twice reverts")
-expect_revert(lambda: send(B, INBOX, S["reply"] + u256(1) + u256(64) + bytes_arg(ct())), "replying to someone else's payment reverts")
-expect_revert(lambda: send(B, INBOX, S["refund"] + u256(1)), "refunding a settled payment reverts")
 expect_revert(lambda: send(B, INBOX, S["send"] + addr(A) + u256(64) + bytes_arg(ct(5000))),
               "an oversized message reverts")
+
+print("\n5b. double reply, with the right recipient and a pending payment")
+send(C, INBOX, S["send"] + addr(A) + u256(64) + bytes_arg(ct()))   # C is not a contact: payment 3, pending
+expect_revert(lambda: send(B, INBOX, S["reply"] + u256(3) + u256(64) + bytes_arg(ct())),
+              "replying to someone else's payment reverts")
+a_before, t_before = bal(A), bal(TREASURY)
+send(A, INBOX, S["reply"] + u256(3) + u256(64) + bytes_arg(ct(30, 3)))
+check(bal(A) - a_before == 95 * UNIT, "A received 95 for payment 3")
+expect_revert(lambda: send(A, INBOX, S["reply"] + u256(3) + u256(64) + bytes_arg(ct())),
+              "replying twice reverts")
+expect_revert(lambda: send(B, INBOX, S["refund"] + u256(1)), "refunding a settled payment reverts")
 
 print("\n6. open inbox")
 send(B, INBOX, S["configure"] + u256(1) + KEY + u256(500 * UNIT))

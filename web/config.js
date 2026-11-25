@@ -5,15 +5,15 @@ window.TALK_CONFIG = {
     id: 4663,
     name: "Robinhood Chain",
     rpc: "https://rpc.mainnet.chain.robinhood.com",
-    explorer: "https://robin.etherscan.io",
+    explorer: "https://robinhoodchain.blockscout.com",
     nativeSymbol: "ETH"
   },
 
   // Deployment addresses (empty until you deploy).
-  token: "",      // $TALK (ERC-20)
-  inbox: "",      // TalkInbox
-  curve: "",      // TalkCurve (primary sale)
-  fromBlock: 0,   // block where TalkInbox was deployed
+  token: "0x3476AFfa0f73aED50dc8bA0645965f992656f176",      // $TALK (ERC-20)
+  inbox: "0x09CbF9B06881630b681eCca7Df7fD54A0D45F80a",      // TalkInbox
+  curve: "",      // TalkCurve (primary sale) — TALK lanza por Pons, sin curva propia
+  fromBlock: 122633004,   // block where TalkInbox was deployed
 
   symbol: "TALK",
   decimals: 18,
@@ -25,11 +25,10 @@ window.TALK_CONFIG = {
   /* Banner social links. Paste your URLs: empty ones render dimmed and
      unclickable. Optional xHandle to show "@youruser". */
   socials: {
-    x: "",
-    xHandle: "",
-    telegram: "",
+    x: "https://x.com/Talkwhitall",
+    xHandle: "@Talkwhitall",
+    github: "https://github.com/TalkCrypto/Talk",
     discord: "",
-    github: "",
     site: "",
     label: "web"
   }

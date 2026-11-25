@@ -1,0 +1,13 @@
+{
+  "name": "Talk — encrypted messaging between wallets",
+  "short_name": "Talk",
+  "description": "Encrypted messaging between wallets. A stranger pays $TALK to reach you — reply in 72h, keep 95%.",
+  "start_url": "app.html",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

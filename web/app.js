@@ -41,10 +41,12 @@ const ERC20 = { allowance: "0xdd62ed3e", approve: "0x095ea7b3", balanceOf: "0x70
 const TOPIC_MSG = "0x2096cd4806a6f9634720b2b28d359d46b7292c895b42c68040ffdc1a016268bf";
 const TOPIC_SETTLED = "0x321f57f44af402708b8b3bad0bd10012cd568d8696946e26edeb86178bb7c27e";
 
+/* la firma liga las claves al dominio: un phishing en otro dominio deriva claves distintas e inútiles */
 const SIG_MSG = "Talk\n\n" +
   "Sign to unlock your encrypted inbox.\n" +
   "This is free: it is not a transaction and costs no gas.\n\n" +
-  "Key version: 1";
+  "Domain: " + location.hostname + "\n" +
+  "Key version: 2";
 
 const RULE_NAME = ["keep 95%", "keep 95%", "keep 95%"];
 const STATUS_LABEL = { 0: "—", 1: "on hold", 2: "paid", 3: "returned" };
@@ -137,10 +139,10 @@ const $ = id => document.getElementById(id);
 const els = {};
 ["addr","bal","btnConnect","setupBanner","boxForm","boxActions","boxBadge","btnEdit",
 "passAddr","passPrice","passCur","passDesc","passOpen","passRule","passVig","passStub","passBar","passKey",
- "wzDots","wzLbl","wzOpen","wzOpenHint","wzRule","wzPrice","wzPriceVal","wzPresets","wzSim",
+ "wzDots","wzLbl","wzOpen","wzOpenHint","wzPrice","wzPriceVal","wzPresets","wzSim",
  "wzBack","wzNext","convs","msgs","threadTitle","threadMeta","peerAv","composer","text","priceTag",
  "btnSend","threadActions","composerHint","log",
- "meAv","meName","meSub","btnInbox","btnInbox2","btnCloseInbox","inboxModal","search","newTo","footMeta",
+ "meAv","meName","meSub","btnInbox","btnInbox2","btnCloseInbox","inboxModal","search","newTo","footMeta","socials",
  "btnRename","renameRow","renameInput","renameSave","renameClear"]
   .forEach(k => els[k] = $(k));
 
@@ -195,7 +197,7 @@ const readInbox = a => call(CFG.inbox, SEL.inboxes + asAddr(a)).then(d => {
   const w = words(d);
   return {
     registered: wBig(w[0]) === 1n, open: wBig(w[1]) === 1n,
-    rule: Number(wBig(w[2])), encKey: w[3], price: wBig(w[4])
+    encKey: w[2], price: wBig(w[3])
   };
 });
 const readPayment = id => call(CFG.inbox, SEL.payments + u256(id)).then(d => {
@@ -259,7 +261,8 @@ function decodeMsg(l) {
 }
 
 /* ------------------------------- crypto --------------------------------- */
-const keyId = a => "talk:enc:" + a.toLowerCase();
+/* claves v2: el id nuevo invalida cachés derivadas con la versión anterior */
+const keyId = a => "talk:enc2:" + a.toLowerCase();
 
 async function deriveKeys(account) {
   const sig = await ethereum.request({ method: "personal_sign", params: [utf8Hex(SIG_MSG), account] });
@@ -298,23 +301,44 @@ function unseal(ct, peerKey) {
 const myPub = () => bytesToHex(S.keyPair.publicKey);
 
 /* -------------------------------- wallet -------------------------------- */
-async function ensureChain() {
-  const cur = await ethereum.request({ method: "eth_chainId" });
-  if (parseInt(cur, 16) === CFG.chain.id) return;
+/** The injected provider, whatever the wallet calls itself (MetaMask, Rabby, multiple at once). */
+function provider() {
+  const eth = window.ethereum;
+  if (!eth) return null;
+  if (Array.isArray(eth.providers) && eth.providers.length) {
+    return eth.providers.find(p => p.isMetaMask && !p.isBraveWallet) || eth.providers[0];
+  }
+  return eth;
+}
+
+/**
+ * Switch to our chain, adding it if the wallet doesn't know it yet.
+ * Returns true when we're on the right network, false when the user declined —
+ * a declined switch must NOT block the connection, only the ability to send.
+ */
+async function ensureChain(p) {
+  const cur = await p.request({ method: "eth_chainId" });
+  if (parseInt(cur, 16) === CFG.chain.id) return true;
+
   const hexId = "0x" + CFG.chain.id.toString(16);
+  const netParams = [{
+    chainId: hexId, chainName: CFG.chain.name,
+    nativeCurrency: { name: CFG.chain.nativeSymbol, symbol: CFG.chain.nativeSymbol, decimals: 18 },
+    rpcUrls: [CFG.chain.rpc], blockExplorerUrls: [CFG.chain.explorer]
+  }];
+
   try {
-    await ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: hexId }] });
+    await p.request({ method: "wallet_switchEthereumChain", params: [{ chainId: hexId }] });
+    return true;
   } catch (e) {
-    if (e.code === 4902 || /not added|unrecognized/i.test(e.message || "")) {
-      await ethereum.request({
-        method: "wallet_addEthereumChain",
-        params: [{
-          chainId: hexId, chainName: CFG.chain.name,
-          nativeCurrency: { name: CFG.chain.nativeSymbol, symbol: CFG.chain.nativeSymbol, decimals: 18 },
-          rpcUrls: [CFG.chain.rpc], blockExplorerUrls: [CFG.chain.explorer]
-        }]
-      });
-    } else throw e;
+    if (e && e.code === 4001) return false;          // the user said no
+    // 4902 = unknown chain; anything else, try adding it too
+    try {
+      await p.request({ method: "wallet_addEthereumChain", params: netParams });
+      return true;
+    } catch (e2) {
+      return false;
+    }
   }
 }
 async function sendTx(tx) {
@@ -352,13 +376,14 @@ async function runTx(label, build) {
 const ICONS = {
   x: '<svg viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>',
   telegram: '<svg viewBox="0 0 24 24"><path d="M21.9 4.3 2.9 11.6c-.9.3-.9 1.5 0 1.8l4.7 1.6 1.8 5.5c.2.7 1.2.9 1.7.3l2.6-2.9 4.6 3.4c.6.4 1.4.1 1.6-.6l3.4-15.2c.2-.9-.7-1.6-1.4-1.2zM8.9 14.4l8.6-5.5-6.9 6.6-.3 3z"/></svg>',
+
   discord: '<svg viewBox="0 0 24 24"><path d="M20.3 4.4A19 19 0 0 0 15.6 3l-.3.6a17 17 0 0 0-6.6 0L8.4 3a19 19 0 0 0-4.7 1.4C.8 9 .1 13.4.4 17.7a19 19 0 0 0 5.8 2.9l.7-1.2c-.6-.2-1.2-.5-1.7-.8l.4-.3a13.6 13.6 0 0 0 11.6 0l.4.3c-.5.3-1.1.6-1.7.8l.7 1.2a19 19 0 0 0 5.8-2.9c.4-5-.7-9.3-2.2-13.3zM8.3 15.2c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm7.4 0c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>',
   github: '<svg viewBox="0 0 24 24"><path d="M12 .5A11.5 11.5 0 0 0 .5 12a11.5 11.5 0 0 0 7.9 10.9c.6.1.8-.2.8-.6v-2c-3.2.7-3.9-1.5-3.9-1.5-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.1.1 1.7 1.2 1.7 1.2 1 1.7 2.7 1.2 3.3.9.1-.7.4-1.2.7-1.5-2.6-.3-5.3-1.3-5.3-5.8 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2a11 11 0 0 1 5.9 0C17 4.5 18 4.8 18 4.8c.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.5-2.7 5.5-5.3 5.8.4.4.8 1.1.8 2.2v3.3c0 .4.2.7.8.6A11.5 11.5 0 0 0 23.5 12A11.5 11.5 0 0 0 12 .5z"/></svg>',
   site: '<svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm6.9 6h-2.9a15 15 0 0 0-1.2-3.4A8 8 0 0 1 18.9 8zM12 4.2c.5.7 1 1.9 1.4 3.8h-2.8c.4-1.9.9-3.1 1.4-3.8zM4.3 14a8 8 0 0 1 0-4h3.3a21 21 0 0 0 0 4zm.8 2h2.9c.3 1.2.7 2.4 1.2 3.4A8 8 0 0 1 5.1 16zm2.9-8H5.1a8 8 0 0 1 4.1-3.4A15 15 0 0 0 8 8zM12 19.8c-.5-.7-1-1.9-1.4-3.8h2.8c-.4 1.9-.9 3.1-1.4 3.8zM14.6 14H9.4a19 19 0 0 1 0-4h5.2a19 19 0 0 1 0 4zm.6 5.4c.5-1 .9-2.2 1.2-3.4h2.9a8 8 0 0 1-4.1 3.4zm1.6-5.4a21 21 0 0 0 0-4h3.3a8 8 0 0 1 0 4z"/></svg>'
 };
 function renderSocials() {
   if (!els.socials) return;
-  const order = ["x", "telegram", "discord", "github", "site"];
+  const order = ["x", "github", "site"];
   const link = CFG.socials || {};
   const label = k =>
     k === "site" ? (link.label || "web")
@@ -396,18 +421,17 @@ function renderStats() {
 }
 
 /* ------------------------------ the wizard ------------------------------ */
-const WZ = { step: 1, open: false, rule: 1, price: 120, editing: false };
+const WZ = { step: 1, open: false, price: 120, editing: false };
 
 function wzPrefill(me) {
   WZ.open = !!(me && me.open);
-  WZ.rule = me ? me.rule : 1;
   WZ.price = me && me.price > 0n ? Math.min(500, Number(me.price / UNIT)) : 120;
   WZ.step = 1;
   wzSync();
 }
 
 function wzShow(n) {
-  WZ.step = Math.min(3, Math.max(1, n));
+  WZ.step = Math.min(2, Math.max(1, n));
   document.querySelectorAll(".wz-page").forEach(p => {
     p.hidden = Number(p.dataset.p) !== WZ.step;
   });
@@ -415,18 +439,15 @@ function wzShow(n) {
     d.classList.toggle("on", i === WZ.step - 1);
     d.classList.toggle("done", i < WZ.step - 1);
   });
-  if (els.wzLbl) els.wzLbl.textContent = "step " + WZ.step + " of 3";
+  if (els.wzLbl) els.wzLbl.textContent = "step " + WZ.step + " of 2";
   if (els.wzBack) els.wzBack.disabled = WZ.step === 1;
-  if (els.wzNext) els.wzNext.textContent = WZ.step === 3 ? "Save inbox" : "Next";
+  if (els.wzNext) els.wzNext.textContent = WZ.step === 2 ? "Save inbox" : "Next";
   wzSync();
 }
 
 function wzSync() {
   els.wzOpen?.querySelectorAll(".choice").forEach(b => {
     b.classList.toggle("sel", (b.dataset.v === "1") === WZ.open);
-  });
-  els.wzRule?.querySelectorAll(".choice").forEach(b => {
-    b.classList.toggle("sel", Number(b.dataset.v) === WZ.rule);
   });
   if (els.wzPrice) els.wzPrice.value = String(WZ.price);
   if (els.wzPriceVal) els.wzPriceVal.textContent = String(WZ.price);
@@ -440,7 +461,7 @@ function wzSync() {
   }
   wzSim();
   renderPass(
-    { open: WZ.open, rule: WZ.rule, price: BigInt(WZ.price) * UNIT, registered: !!(S.me && S.me.registered) },
+    { open: WZ.open, price: BigInt(WZ.price) * UNIT, registered: !!(S.me && S.me.registered) },
     true
   );
 }
@@ -452,17 +473,9 @@ function wzSim() {
   let you = 0n, back = 0n, fee = 0n;
 
   if (amount > 0n) {
-    if (WZ.rule === 0) {
-      back = amount;
-    } else if (WZ.rule === 1) {
-      fee = (amount * bps) / 10000n;
-      you = amount - fee;
-    } else {
-      back = amount / 2n;
-      const rest = amount - back;
-      fee = (rest * bps) / 10000n;
-      you = rest - fee;
-    }
+    fee = (amount * bps) / 10000n;
+    you = amount - fee;
+    back = (amount * 9000n) / 10000n;
   }
 
   const pct = v => (amount === 0n ? 0 : Number((v * 1000n) / amount) / 10);
@@ -471,11 +484,7 @@ function wzSim() {
     ? "Open inbox: anyone writes for free. Your price is not charged until you close it."
     : free
       ? "Free: nobody pays to reach you, and contacts stay free forever."
-      : WZ.rule === 0
-        ? "If you reply, they get it all back — you earn nothing. If they never write again, it still returns."
-        : WZ.rule === 1
-          ? "If you reply you keep the payment minus 5%. If you don't reply in 72h, all of it goes back."
-          : "If you reply, half goes back and you keep the other half minus 5%. If you don't, all of it returns.";
+      : "If you reply within 72h you keep the payment minus 5%. If you never reply, 90% goes back and Talk keeps 10%.";
 
   els.wzSim.innerHTML =
     `<div class="sm-bubble"><div class="who">a stranger</div>` +
@@ -483,14 +492,13 @@ function wzSim() {
     `<div class="sm-line"><span class="sm-k">pays</span>` +
     `<span class="sm-v">${free ? "nothing" : fmt(amount)}</span></div>` +
     (free ? "" :
-      `<div class="sm-line"><span class="sm-k">you keep</span><span class="sm-v you">${fmt(you)}</span></div>` +
+      `<div class="sm-line"><span class="sm-k">you keep on reply</span><span class="sm-v you">${fmt(you)}</span></div>` +
       `<div class="sm-line"><span class="sm-k">fee</span><span class="sm-v fee">${fmt(fee)}</span></div>` +
-      `<div class="sm-line"><span class="sm-k">goes back</span><span class="sm-v">${fmt(back)}</span></div>` +
+      `<div class="sm-line"><span class="sm-k">back if you don't</span><span class="sm-v">${fmt(back)}</span></div>` +
       `<div class="sm-track">` +
       `<i class="you" style="width:${pct(you)}%"></i>` +
-      `<i class="fee" style="width:${pct(fee)}%"></i>` +
-      `<i class="back" style="width:${pct(back)}%"></i></div>` +
-      `<div class="sm-legend"><s>you</s><s class="f">fee</s><s class="b">goes back</s></div>`) +
+      `<i class="fee" style="width:${pct(fee)}%"></i></div>` +
+      `<div class="sm-legend"><s>you</s><s class="f">fee</s></div>`) +
     `<div class="sm-note">${note}</div>`;
 }
 
@@ -507,7 +515,7 @@ function barcode(hex) {
 
 function renderPass(v, live) {
   if (!els.passPrice) return;
-  const box = v || { registered: false, open: false, rule: 1, price: 0n };
+  const box = v || { registered: false, open: false, price: 0n };
   const num = live
     ? String(WZ.price)
     : (box.price > 0n ? fmt(box.price, { sym: false }) : "0");
@@ -518,8 +526,7 @@ function renderPass(v, live) {
   if (els.passStub) els.passStub.textContent = num;
   if (els.passAddr) els.passAddr.textContent = S.account ? short(S.account) : "no wallet";
   if (els.passOpen) els.passOpen.textContent = box.open ? "anyone" : "contacts only";
-  if (els.passRule) els.passRule.textContent =
-    ["full refund", "keep it, less 5%", "split 50/50"][box.rule] || "—";
+  if (els.passRule) els.passRule.textContent = "you keep 95%";
   if (els.passDesc) {
     els.passDesc.textContent = free
       ? "anyone can message you for free"
@@ -543,7 +550,7 @@ function renderBox() {
   if (els.footMeta) els.footMeta.textContent = "Your key never leaves this device.";
 
   if (!S.me) {
-    renderPass({ registered: false, open: false, rule: 1, price: 0n }, false);
+    renderPass({ registered: false, open: false, price: 0n }, false);
     if (els.boxForm) els.boxForm.hidden = true;
     if (els.boxActions) els.boxActions.hidden = true;
     return;
@@ -592,20 +599,28 @@ function renderConvs() {
     const on = S.active && S.active.toLowerCase() === c.address ? " on" : "";
     const pv = c.preview ? esc(c.preview.slice(0, 60)) : "Encrypted message";
 
+    // no leídos estilo WhatsApp: mensajes con id mayor al último visto
+    let unread = 0;
+    try {
+      const seen = Number(localStorage.getItem("talk:seen:" + c.address) || 0);
+      unread = S.all.filter(m =>
+        (m.from.toLowerCase() === c.address || m.to.toLowerCase() === c.address) &&
+        (m.id || 0) > seen &&
+        m.from.toLowerCase() !== (S.account || "").toLowerCase()).length;
+    } catch (_) {}
+
     let last = null;
     for (let i = S.all.length - 1; i >= 0; i--) {
       const m = S.all[i];
       if (m.from.toLowerCase() === c.address || m.to.toLowerCase() === c.address) { last = m; break; }
     }
-    const ts = last ? tsOf(last) : null;
-    const badge = c.pending ? '<span class="badge-dot">1</span>' : "";
+    const badge = unread ? `<span class="badge-dot">${unread}</span>` : (c.pending ? '<span class="badge-dot">1</span>' : "");
 
     return `<div class="chat-row${on}" data-a="${c.address}">
       <div class="avatar sm">${c.address.slice(2, 4).toUpperCase()}</div>
       <div class="min">
         <div class="row-top">
           <span class="row-name" title="${c.address}">${esc(aliasOf(c.address))}</span>
-          <span class="row-time">${ts ? hhmm(ts) : ""}</span>
         </div>
         <div class="row-sub">
           <span class="row-pv">${pv}</span>
@@ -618,30 +633,13 @@ function renderConvs() {
   els.convs.querySelectorAll(".chat-row").forEach(el => el.onclick = () => openThread(el.dataset.a));
 }
 
-/* ---- block timestamps (cached) ---- */
-const times = new Map();
-
-async function loadTimes(blocks) {
-  const uniq = [...new Set(blocks)].filter(b => b && !times.has(b)).slice(0, 40);
-  await Promise.all(uniq.map(async b => {
-    try {
-      const blk = await rpc("eth_getBlockByNumber", ["0x" + b.toString(16), false]);
-      times.set(b, blk ? Number(blk.timestamp) : null);
-    } catch (_) { times.set(b, null); }
-  }));
+/* ---- sin horas: los mensajes no llevan estampas de tiempo (cero problemas de zonas horarias) ---- */
+function ttlTxt(p) {
+  const s = p.expiresAt - Math.floor(Date.now() / 1000);
+  if (s <= 0) return "expired";
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
+  return h ? h + "h " + m + "m" : m + "m";
 }
-const tsOf = m => (m.ts ? m.ts : (times.get(m.block) || null));
-const sameDay = (a, b) =>
-  a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-function dayLabel(ts) {
-  const d = new Date(ts * 1000), now = new Date();
-  if (sameDay(d, now)) return "Today";
-  const y = new Date(now); y.setDate(now.getDate() - 1);
-  if (sameDay(d, y)) return "Yesterday";
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
-const hhmm = ts => new Date(ts * 1000).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-const dayKey = ts => { const d = new Date(ts * 1000); return d.getFullYear() + "-" + d.getMonth() + "-" + d.getDate(); };
 
 function renderThread() {
   if (!els.msgs) return;
@@ -688,30 +686,21 @@ function renderThread() {
       else groups.push({ out, items: [m] });
     }
 
-    let html = "", lastDay = null;
+    let html = "";
     for (const g of groups) {
-      const first = g.items[0];
-      const t0 = tsOf(first);
-      if (t0) {
-        const k = dayKey(t0);
-        if (k !== lastDay) { html += `<div class="day-chip"><span>${dayLabel(t0)}</span></div>`; lastDay = k; }
-      }
-
-      const bubbles = g.items.map((m, i) => {
+      const bubbles = g.items.map(m => {
         const txt = m.plain !== undefined ? m.plain : (S.keyPair ? unseal(m.ct, peerKey) : null);
-        const t = tsOf(m);
-        const isLast = i === g.items.length - 1;
-        const stamp = (t && isLast) ? `<span class="t">${hhmm(t)}</span>` : "";
 
         const body = txt !== null
-          ? `<div class="bubble">${esc(txt)}${stamp}</div>`
-          : `<div class="bubble locked">locked · ${strip0x(m.ct).length / 2} B${stamp}</div>`;
+          ? `<div class="bubble">${esc(txt)}</div>`
+          : `<div class="bubble locked">locked · ${strip0x(m.ct).length / 2} B</div>`;
 
         let chip = "";
         const p = S.payments.get(m.paymentId);
         if (p) {
           const cls = p.status === 1 ? "pending" : p.status === 2 ? "settled" : "refunded";
-          chip = `<span class="paychip ${cls}">${fmt(p.amount)} · ${STATUS_LABEL[p.status]}</span>`;
+          chip = `<span class="paychip ${cls}">${fmt(p.amount)} · ${p.status === 1 ? ttlTxt(p) + " left" : STATUS_LABEL[p.status]}</span>`;
+          if (p.status === 2) chip += `<div class="sysline">✓ ${fmt(p.amount)} collected · you are now contacts</div>`;
         }
         return body + chip;
       }).join("");
@@ -753,9 +742,10 @@ async function renderComposer() {
     if (els.priceTag) els.priceTag.textContent = S.price === 0n ? "free" : fmt(S.price);
     if (els.btnSend) els.btnSend.disabled = false;
     if (els.composerHint) {
-      els.composerHint.textContent = S.price === 0n
+      els.composerHint.innerHTML = S.price === 0n
         ? "Free — you are already contacts, or the inbox is open."
-        : `On hold for ${Math.round(S.ttl / 3600)}h. If they don't reply, most of it comes back.`;
+        : "Held in escrow until they reply · back to you if no reply in 72h · approves exactly " +
+          fmt(S.price) + ", nothing more · " + Math.round(S.ttl / 3600) + "h window";
     }
   } catch (_) {
     if (els.priceTag) els.priceTag.textContent = "—";
@@ -779,7 +769,7 @@ function renderActions() {
     const p = S.payments.get(incoming.paymentId);
     const b = document.createElement("button");
     b.className = "solid sm";
-    b.textContent = "Reply and settle " + fmt(p.amount);
+    b.textContent = "Reply and settle " + fmt(p.amount) + " · " + ttlTxt(p) + " left to collect";
     b.onclick = () => doSend(p.id);
     els.threadActions.appendChild(b);
   }
@@ -790,7 +780,7 @@ function renderActions() {
     b.className = "sm";
     b.textContent = expired
       ? "Refund " + fmt(p.amount)
-      : "on hold until " + new Date(p.expiresAt * 1000).toLocaleString();
+      : "on hold · " + ttlTxt(p) + " left for them to reply";
     b.disabled = !expired;
     b.onclick = () => doRefund(p.id);
     els.threadActions.appendChild(b);
@@ -879,7 +869,16 @@ async function openThread(addr) {
   S.msgs = (S.all || []).filter(m =>
     (m.from.toLowerCase() === me && m.to.toLowerCase() === addr.toLowerCase()) ||
     (m.to.toLowerCase() === me && m.from.toLowerCase() === addr.toLowerCase()));
-  try { await loadTimes(S.msgs.map(m => m.block)); } catch (_) {}
+  // marcar como visto (insignia de no leídos estilo WhatsApp)
+  try {
+    const maxId = S.msgs.reduce((a, m) => Math.max(a, m.id || 0), 0);
+    localStorage.setItem("talk:seen:" + addr.toLowerCase(), String(maxId));
+  } catch (_) {}
+  // first contact: fetch the peer's inbox so the composer can quote and send
+  const key = addr.toLowerCase();
+  if (!S.peers.has(key)) {
+    try { const cfg = await readInbox(key); if (cfg.registered) S.peers.set(key, cfg); } catch (_) {}
+  }
   renderConvs();
   renderThread();
 }
@@ -888,7 +887,7 @@ async function doSave() {
   if (!S.keyPair) { log("Unlock your inbox first.", "err"); return; }
   try {
     const price = BigInt(WZ.price) * UNIT;
-    const data = SEL.configure + u256(WZ.open ? 1 : 0) + u256(WZ.rule) + asAddr(myPub()) + u256(price);
+    const data = SEL.configure + u256(WZ.open ? 1 : 0) + asAddr(myPub()) + u256(price);
     if (await runTx("Saving inbox", () => ({ to: CFG.inbox, data }))) {
       WZ.editing = false;
       WZ.ready = false;
@@ -960,12 +959,12 @@ function setupDemo() {
   S.feeBps = 500;
   S.balance = 12480n * UNIT;
   S.me = {
-    registered: true, open: false, rule: 1, price: 120n * UNIT,
+    registered: true, open: false, price: 120n * UNIT,
     encKey: bytesToHex(S.keyPair.publicKey)
   };
   S.peers = new Map([
-    [P1.toLowerCase(), { registered: true, open: false, rule: 1, encKey: bytesToHex(nacl.box.keyPair().publicKey), price: 100n * UNIT }],
-    [P2.toLowerCase(), { registered: true, open: true, rule: 2, encKey: bytesToHex(nacl.box.keyPair().publicKey), price: 0n }]
+    [P1.toLowerCase(), { registered: true, open: false, encKey: bytesToHex(nacl.box.keyPair().publicKey), price: 100n * UNIT }],
+    [P2.toLowerCase(), { registered: true, open: true, encKey: bytesToHex(nacl.box.keyPair().publicKey), price: 0n }]
   ]);
   S.contacts = new Set([P2.toLowerCase()]);
   S.payments = new Map([
@@ -1036,13 +1035,33 @@ async function connect() {
   }
   if (!window.ethereum) {
     log("No wallet detected in this browser.", "err");
+    // aviso visible: sin wallet, el botón no debe parecer muerto
+    let b = document.getElementById("noWalletBanner");
+    if (!b) {
+      b = document.createElement("div");
+      b.id = "noWalletBanner";
+      b.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:9999;padding:14px 20px;background:#000;color:#fff;font-family:Geist,sans-serif;font-size:15px;text-align:center;border-bottom:1px solid #333";
+      b.innerHTML = "You need a wallet to connect — <a href='https://metamask.io/download/' target='_blank' rel='noopener noreferrer' style='color:#fff;text-decoration:underline'>install MetaMask</a> (free) and tap Connect again. On mobile: open this page from the MetaMask app browser.";
+      document.body.appendChild(b);
+      setTimeout(() => b && b.remove(), 15000);
+    }
     return;
   }
+  const p = provider();
+  if (els.btnConnect) { els.btnConnect.disabled = true; els.btnConnect.textContent = "Connecting…"; }
+
   try {
     log("Connecting…");
-    await ensureChain();
-    const [acc] = await ethereum.request({ method: "eth_requestAccounts" });
+
+    // 1. the permission prompt. This is the only thing every wallet agrees on.
+    const accounts = await p.request({ method: "eth_requestAccounts" });
+    const acc = accounts && accounts[0];
+    if (!acc) throw new Error("Your wallet returned no account.");
     S.account = acc;
+
+    // 2. the network. If the user declines we still connect, we just can't send.
+    const onChain = await ensureChain(p);
+    if (!onChain) log("You are on another network — switch to " + CFG.chain.name + " to send transactions.", "warn");
 
     S.ttl = Number(wBig(words(await call(CFG.inbox, SEL.ttl))[0]));
     S.feeBps = Number(wBig(words(await call(CFG.inbox, SEL.feeBps))[0]));
@@ -1064,9 +1083,21 @@ async function connect() {
     await refresh();
     log("Connected · " + (S.feeBps / 100) + "% fee · " + Math.round(S.ttl / 3600) + "h escrow", "ok");
   } catch (e) {
-    log("error: " + (e.shortMessage || e.message || e), "err");
+    const code = e && e.code;
+    const msg = code === 4001 ? "You rejected the request in your wallet — tap Connect and approve it."
+      : code === -32002 ? "Your wallet already has a request open — open the extension and approve it, then tap Connect again."
+      : (e && (e.shortMessage || e.message)) || "Could not connect.";
+    log(msg, "err");
+    if (els.btnConnect) { els.btnConnect.disabled = false; els.btnConnect.textContent = "Connect"; }
+    return;
   }
+
+  if (els.btnConnect) { els.btnConnect.disabled = false; }
 }
+/* poll for incoming messages while the tab is open (pause while typing) */
+setInterval(() => {
+  if (S.account && !S.demo && !els.text?.value) refresh().catch(() => {});
+}, 15000);
 
 function initConfigPanel() {
   if (!els.btnCfg) return;
@@ -1093,7 +1124,7 @@ function initHero() {
     d.className = "hint";
     d.style.maxWidth = "52ch";
     d.innerHTML =
-      "<b>1.</b> You activate your inbox with one free signature — not a transaction.<br>" +
+      "<b>1.</b> You activate your inbox with one signature and one small transaction.<br>" +
       "<b>2.</b> You set a price in $TALK. A stranger pays to reach you.<br>" +
       "<b>3.</b> The payment sits in the contract, not with you: release it by replying within 72h, or it returns.<br>" +
       "<b>4.</b> After you reply you are contacts — writing is free from then on.";
@@ -1105,16 +1136,13 @@ function initWizard() {
   els.wzOpen?.querySelectorAll(".choice").forEach(b => {
     b.onclick = () => { WZ.open = b.dataset.v === "1"; wzSync(); };
   });
-  els.wzRule?.querySelectorAll(".choice").forEach(b => {
-    b.onclick = () => { WZ.rule = Number(b.dataset.v); wzSync(); };
-  });
   if (els.wzPrice) els.wzPrice.oninput = () => { WZ.price = Number(els.wzPrice.value); wzSync(); };
   els.wzPresets?.querySelectorAll("button").forEach(b => {
     b.onclick = () => { WZ.price = Number(b.dataset.p); wzSync(); };
   });
   if (els.wzBack) els.wzBack.onclick = () => wzShow(WZ.step - 1);
   if (els.wzNext) els.wzNext.onclick = () => {
-    if (WZ.step < 3) { wzShow(WZ.step + 1); return; }
+    if (WZ.step < 2) { wzShow(WZ.step + 1); return; }
     doSave();
   };
   if (els.btnEdit) els.btnEdit.onclick = () => {

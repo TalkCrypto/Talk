@@ -8,11 +8,12 @@ Expected numbers are recomputed in Python with the same closed form, so this che
 Solidity integral against an independent implementation.
 """
 import json
+import os
 import sys
 import time
 import urllib.request
 
-sys.path.insert(0, r"C:\Users\nonam\AppData\Local\Temp\nexus")
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "vendor"))
 from keccak import keccak256  # noqa: E402
 
 RPC = "http://127.0.0.1:8546"

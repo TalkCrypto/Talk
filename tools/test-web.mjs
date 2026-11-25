@@ -5,7 +5,7 @@ import { webcrypto } from "node:crypto";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
-const nacl = require(path.join(process.env.TEMP, "nexus", "nacl.min.js"));
+const nacl = require(path.join(import.meta.dirname, "vendor", "nacl.min.js"));
 
 const ROOT = "C:/Users/nonam/Desktop/PROYECTOS/Talk/web";
 const app = fs.readFileSync(ROOT + "/app.js", "utf8");
@@ -30,7 +30,7 @@ const sandbox = {
   crypto: webcrypto, TextEncoder, TextDecoder, Uint8Array, DataView, BigInt, Math, Date, JSON,
   Promise, Error, Number, String, Array, Object, Map, Set, parseInt, parseFloat, isNaN,
   nacl, fetch: () => { throw new Error("no fetch"); },
-  location: { reload() {} }, setTimeout, clearTimeout,
+  location: { reload() {} }, setTimeout, clearTimeout, setInterval, clearInterval,
 };
 sandbox.globalThis = sandbox;
 sandbox.self = sandbox;
@@ -54,9 +54,9 @@ globalThis.__t = (async () => {
   ok("parseUnits throws on garbage", threw);
   ok("fmt(100 TALK)", eq(fmt(100n * 10n**18n), "100 TALK"));
 
-  // --- deterministic signature
-  ok("SIG_MSG is stable", SIG_MSG === "Talk\\n\\nSign to unlock your encrypted inbox.\\n" +
-     "This is free: it is not a transaction and costs no gas.\\n\\nKey version: 1");
+  // --- deterministic signature: domain-bound, versioned
+  ok("SIG_MSG binds the domain", SIG_MSG.indexOf("Domain: " + location.hostname) >= 0 || SIG_MSG.indexOf("Domain: noxsecurity.tech") >= 0);
+  ok("SIG_MSG is version 2", SIG_MSG.indexOf("Key version: 2") >= 0);
 
   // --- ABI: send(address,bytes)
   const to = "0x" + "ab".repeat(20);
@@ -80,12 +80,18 @@ globalThis.__t = (async () => {
   // --- ABI: refund
   ok("refund selector", (SEL.refund + u256(3)).startsWith("0x278ecde1"));
 
-  // --- decode inboxes() with 5 words
-  const inboxData = "0x" + u256(1) + u256(0) + u256(2) + "ab".repeat(32) + u256(250n * 10n**18n);
+  // --- decode inboxes() with the current 4-word struct (registered, open, encKey, price)
+  const inboxData = "0x" + u256(1) + u256(0) + "ab".repeat(32) + u256(250n * 10n**18n);
   const wi = words(inboxData);
   ok("inboxes: registered", wBig(wi[0]) === 1n);
-  ok("inboxes: rule split", wBig(wi[2]) === 2n);
-  ok("inboxes: price", wBig(wi[4]) === 250n * 10n**18n);
+  ok("inboxes: price", wBig(wi[3]) === 250n * 10n**18n);
+  // --- the real readInbox decodes it through rpc() with a stubbed fetch
+  fetch = async () => ({ ok: true, json: async () => ({ jsonrpc: "2.0", id: 1, result: inboxData }) });
+  const box = await readInbox("0x" + "cc".repeat(20));
+  ok("readInbox: registered/open", box.registered === true && box.open === false);
+  ok("readInbox: encKey en la palabra 2", box.encKey === "ab".repeat(32));
+  ok("readInbox: price en la palabra 3", box.price === 250n * 10n**18n);
+  fetch = () => { throw new Error("no fetch"); };
 
   // --- decode payments() with 5 slots
   const payData = "0x" + asAddr("0x" + "11".repeat(20)) + asAddr("0x" + "22".repeat(20)) +

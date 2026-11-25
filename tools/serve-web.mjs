@@ -12,7 +12,9 @@ const MIME = {
 };
 
 http.createServer((req, res) => {
-  let p = decodeURIComponent(req.url.split("?")[0]);
+  let p;
+  try { p = decodeURIComponent(req.url.split("?")[0]); }
+  catch (_) { res.writeHead(400).end("bad request"); return; }
   if (p === "/") p = "/index.html";
   const file = path.join(ROOT, p);
   if (!path.resolve(file).startsWith(path.resolve(ROOT))) { res.writeHead(403).end("forbidden"); return; }

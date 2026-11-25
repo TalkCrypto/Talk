@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Talk — Whitepaper · the communication layer for crypto networks</title>
+<meta name="description" content="Why chains need a native communication layer, how Talk works, and where it goes.">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300..600&family=Geist+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+  :root { --paper:#f4f1ea; --ink:#0a0a0b; --dim:#6b6b6e; --line:#d8d4c8; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--ink); color:var(--paper); font-family:Geist,sans-serif; font-weight:300; line-height:1.6; }
+  .wrap { max-width:860px; margin:0 auto; padding:64px 28px 120px; }
+  a { color:inherit; }
+  header.top { display:flex; justify-content:space-between; align-items:center; padding:20px 0 0; }
+  .brand { font-size:20px; text-decoration:none; }
+  .brand b { font-weight:600; }
+  nav a { font-size:14px; color:rgba(244,241,234,.65); text-decoration:none; margin-left:22px; }
+  nav a:hover { color:#fff; }
+  h1 { font-family:"Instrument Serif",Georgia,serif; font-weight:400; font-size:56px; line-height:1.05; margin:70px 0 18px; letter-spacing:-.01em; }
+  h1 em { font-style:italic; }
+  .lede { font-size:21px; color:rgba(244,241,234,.75); max-width:640px; margin:0 0 12px; }
+  .meta { font-family:"Geist Mono",monospace; font-size:12px; color:rgba(244,241,234,.45); }
+  h2 { font-family:"Instrument Serif",Georgia,serif; font-weight:400; font-size:34px; margin:72px 0 8px; }
+  h2 .n { color:rgba(244,241,234,.4); font-size:22px; margin-right:12px; font-family:"Geist Mono",monospace; }
+  h3 { font-size:17px; font-weight:600; margin:28px 0 6px; }
+  p { margin:10px 0; }
+  li { margin:8px 0; padding-left:6px; }
+  ul, ol { padding-left:22px; }
+  .card { border:1px solid rgba(244,241,234,.2); border-radius:14px; padding:26px 28px; margin:26px 0; }
+  .card h3 { margin-top:0; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:22px; }
+  @media(max-width:720px){ .grid2{grid-template-columns:1fr} h1{font-size:40px} }
+  table { width:100%; border-collapse:collapse; margin:18px 0; font-size:15px; }
+  th, td { text-align:left; padding:10px 12px; border-bottom:1px solid rgba(244,241,234,.15); }
+  th { color:rgba(244,241,234,.5); font-weight:400; font-size:13px; letter-spacing:.06em; text-transform:uppercase; }
+  .k { font-family:"Geist Mono",monospace; font-size:13px; color:rgba(244,241,234,.7); }
+  .rule { border:0; border-top:1px solid rgba(244,241,234,.15); margin:26px 0; }
+  .foot { margin-top:80px; font-size:13px; color:rgba(244,241,234,.45); }
+  .callout { border-left:3px solid rgba(244,241,234,.5); padding:6px 0 6px 20px; margin:22px 0; font-size:17px; color:rgba(244,241,234,.85); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <a class="brand" href="index.html"><b>Talk</b> whitepaper</a>
+  <nav>
+    <a href="index.html">Landing</a>
+    <a href="app.html">App</a>
+    <a href="https://x.com/Talkwhitall">X</a>
+  </nav>
+</header>
+
+<h1>The chains can move value.<br>They still can't <em>speak.</em></h1>
+<p class="lede">Talk is the communication layer for crypto networks: encrypted, wallet-to-wallet,
+paid in the network's own token, with no accounts and no backend. This page explains the whole
+project — the problem, the mechanics, the economics and where it goes.</p>
+<p class="meta">Robinhood Chain (4663) · contracts verified · fair launch on Pons · v1 · November 2026</p>
+
+<!-- ------------------------------------------------------------ 1 problem -->
+<h2><span class="n">01</span>The problem</h2>
+<p>Every chain in the world moves value. None of them can pass a message. The result is a
+hole that every user and every builder falls into:</p>
+<ul>
+  <li><b>Users can't talk to each other.</b> Two wallets holding the same token have no
+    native way to communicate. The only options are off-chain accounts — Telegram, Discord —
+    that break the link with the wallet, demand sign-ups, and store the conversation on
+    someone else's server.</li>
+  <li><b>Builders can't reach their holders.</b> A dev who ships something great — say a
+    tokenized stock like NVDA, or a new protocol — has <em>no channel at all</em> to the
+    people holding their token. No way to announce, no way to answer, no way to reward them.</li>
+  <li><b>Holders can't give feedback.</b> The user who finds a bug, wants a feature, or would
+    give direct feedback to a project they hold has nowhere to put it. The distance between a
+    builder and their community is infinite by default.</li>
+  <li><b>Value can't buy attention without being spam.</b> Email solved reach with ads and
+    ruined itself. Crypto has the missing ingredient: money itself. Nobody has wired it to
+    communication.</li>
+</ul>
+<div class="callout">A chain without communication is a city with money and no mail.
+Everyone transacts; nobody talks.</div>
+
+<!-- ------------------------------------------------------------ 2 the idea -->
+<h2><span class="n">02</span>The idea</h2>
+<p>Make the <b>wallet</b> the account and the <b>token</b> the price of attention. Then every
+problem above becomes one market:</p>
+<ul>
+  <li>The wallet is the identity — no sign-up, no email, no password.</li>
+  <li>A price on your inbox makes reach cost something — the spam filter is economic, not an
+    algorithm.</li>
+  <li>The payment sits in escrow, not with the recipient — you only keep it by answering.</li>
+  <li>Replying turns two wallets into permanent contacts — communication between people who
+    know each other becomes free, forever.</li>
+</ul>
+<p>Talk is that, shipped: a dashboard on the web, contracts on-chain, and encryption that
+happens entirely in the browser. The network secures it; we never touch a message.</p>
+
+<!-- ------------------------------------------------------------ 3 how it works -->
+<h2><span class="n">03</span>How it works</h2>
+<h3>Keys: one signature, forever</h3>
+<p>Connecting asks for one personal signature of a fixed message. That signature is hashed
+(SHA-256) into a seed, and the seed generates an X25519 keypair (NaCl box). The private key
+never leaves the device; the public key is published on-chain as the inbox's encryption key.
+Because the keys derive from the signature, the same wallet opens the same inbox on any
+machine — no sync, no backup, no account.</p>
+<h3>The inbox is a pass</h3>
+<ul>
+  <li><b>Open or contacts-only.</b> An open inbox is free for anyone to write. A closed one
+    charges a price in $TALK to strangers.</li>
+  <li><b>Contacts are an economic fact.</b> When a payment settles (you replied), both
+    directions become contacts and write free from then on. No lists to manage.</li>
+</ul>
+<h3>Escrow: one price, two outcomes</h3>
+<ul>
+  <li>A stranger pays X $TALK to send a message. The contract holds it — not the recipient.</li>
+  <li><b>Reply within 72 hours</b> → recipient keeps 95%, Talk takes 5%.</li>
+  <li><b>No reply</b> → 90% returns to the sender, Talk keeps 10%. The forfeit is what makes
+    the price a filter instead of a deposit.</li>
+</ul>
+<h3>Encryption</h3>
+<p>Messages are sealed in the browser: versioned envelope with the sender's public key, a
+random 24-byte nonce, and NaCl box (X25519 + XSalsa20-Poly1305). The contract stores opaque
+bytes in event logs — no server, no database, nothing to leak. Maximum message size is 4 KB.</p>
+<h3>No backend</h3>
+<p>The app is static files. Reading the chain is done from the browser with public RPC
+(calls and <span class="k">eth_getLogs</span>). There is no API, no database, no telemetry,
+nothing to hack that holds a secret, and no way for us to read anyone's mail.</p>
+
+<!-- ------------------------------------------------------------ 4 token -->
+<h2><span class="n">04</span>The token</h2>
+<p><b>$TALK</b> — 1,000,000,000 fixed supply, no mint, burn allowed. It launches on Pons as a
+fair launch: no presale, no team allocation, the creator buys at the same price as everyone.
+Its first use is the protocol itself: <b>paying to reach a stranger means buying $TALK</b> —
+demand built into the product.</p>
+
+<h3>The fees, plainly</h3>
+<table>
+  <tr><th>Fee</th><th>When</th><th>Where it goes</th></tr>
+  <tr><td><b>5%</b></td><td>Only when a stranger's paid message is answered (the escrow settles)</td><td>Protocol treasury — team wallet, traceable on-chain</td></tr>
+  <tr><td><b>3%</b></td><td>Every buy and sell of $TALK in the pool</td><td>Split weekly, public on-chain: <b>1%</b> communication infrastructure · <b>1%</b> dev &amp; tooling · <b>1%</b> multichain expansion</td></tr>
+  <tr><td><b>0%</b></td><td>Opening an inbox · writing between contacts · messages refunded by expiry</td><td>Nobody — free</td></tr>
+</table>
+<p>None of these numbers can change: <span class="k">FEE_BPS = 500</span> and
+<span class="k">FORFEIT_BPS = 1000</span> are constants in the verified contract, and the 3%
+trade fee is frozen at launch. The escrow itself returns 95/5 on a reply and 90/10 on expiry —
+measured by the chain, not by us.</p>
+<div class="callout">In one sentence: Talk only charges when a message is worth answering,
+the contract can't lie, and using the token requires buying it.</div>
+
+<!-- ------------------------------------------------------------ 5 for builders -->
+<h2><span class="n">05</span>For builders and projects</h2>
+<p>This is the part we care about most. A dev who builds something incredible on-chain today
+— a tokenized stock like NVDA, a game, a tool — is mute. Talk gives every project a channel
+that is already wired to its holders:</p>
+<div class="grid2">
+  <div class="card">
+    <h3>Reach your holders</h3>
+    <p>Your holders are reachable by wallet. Announce, coordinate, answer — without an
+    off-chain account, without asking anyone to join anything. They hold; you talk.</p>
+  </div>
+  <div class="card">
+    <h3>Hear feedback, get paid to give it</h3>
+    <p>Feedback has a price tag: a holder pays to reach you and you keep 95% by answering.
+    Serious feedback is worth paying for — spam never is. Your inbox fills with signal.</p>
+  </div>
+  <div class="card">
+    <h3>Sponsor your users</h3>
+    <p>Flip the direction: you write first, and the payment sits in escrow for your user.
+    Reward the people who test, report and share — in the project's own native token flow,
+    on-chain, no airdrop tooling needed.</p>
+  </div>
+  <div class="card">
+    <h3>A community room per token</h3>
+    <p>A tokenized asset like NVDA deserves a room: holders talking to the issuer and to
+    each other, with the economics keeping it clean. One inbox per project is all it takes.</p>
+  </div>
+</div>
+
+<!-- ------------------------------------------------------------ 6 roadmap -->
+<h2><span class="n">06</span>Roadmap</h2>
+<ol>
+  <li><b>Now — Robinhood Chain.</b> Live contracts, verified on the explorer; dashboard
+    working end-to-end (inbox, escrow, contacts, encryption). Fair launch on Pons.</li>
+  <li><b>Mobile.</b> Android (APK) and iOS apps — coming soon. The web app is already
+    installable on your phone today (add to home screen).</li>
+  <li><b>After December 12 — cross-chain.</b> Talk on any network: one inbox, every chain.
+    The same wallet, the same keys, every community reachable. The 1% multichain fee funds it.</li>
+  <li><b>Then — the protocol surface.</b> Project rooms, custom avatars for wallets,
+    sponsorship flows (project→user payments), and an API so any dapp can
+    embed a "message this builder" button.</li>
+</ol>
+
+<!-- ------------------------------------------------------------ 7 principles -->
+<h2><span class="n">07</span>Principles</h2>
+<ul>
+  <li><b>No accounts.</b> The wallet is the account. No emails, ever.</li>
+  <li><b>No backend.</b> Static site + public RPC. Nothing to breach, nothing to sell.</li>
+  <li><b>Keys on the device.</b> Derived from your signature, stored locally, never sent.</li>
+  <li><b>Verified everything.</b> Contracts verified on the explorer; source public at launch;
+    114 automated checks in CI-style suites.</li>
+  <li><b>Fixed and immutable.</b> No mint, no withdraw function in the contracts, fee splits
+    frozen at launch.</li>
+  <li><b>Honest economics, in writing.</b> 95/5 on reply, 90/10 on expiry, 3% on trades —
+    every number on this page is what the code does, not what we wish it did.</li>
+</ul>
+
+<!-- ------------------------------------------------------------ 8 security -->
+<h2><span class="n">08</span>Security — what protects $TALK holders</h2>
+<h3>In the token contract</h3>
+<ul>
+  <li><b>Fixed supply, no mint.</b> The 1B is set in the constructor and the mint function
+    does not exist. Nobody can ever issue more — not even the creator.</li>
+  <li><b>No owner.</b> The contract has no owner key: nothing to pause, blacklist, freeze
+    or change.</li>
+  <li><b>Burn allowed, supply only goes down.</b></li>
+</ul>
+<h3>In the inbox contract (where the money sits)</h3>
+<ul>
+  <li><b>No withdraw function.</b> The contract cannot be drained by anyone — funds only
+    move through the three escrow paths (reply 95/5, expiry 90/10, and the 5% protocol fee).</li>
+  <li><b>Reentrancy guard</b> on <span class="k">send</span>, <span class="k">reply</span>
+    and <span class="k">refund</span> — the classic escrow-drain attack can't run.</li>
+  <li><b>Exact-pull accounting</b> (<span class="k">_pullExact</span>): the contract verifies
+    the escrow received exactly the quoted amount — a malicious token can't leave it half-paid.</li>
+  <li><b>Chain time only.</b> The 72h window runs on <span class="k">block.timestamp</span> —
+    nobody can speed it up or slow it down.</li>
+  <li><b>Fees are immutable constants</b> (<span class="k">FEE_BPS = 500</span>,
+    <span class="k">FORFEIT_BPS = 1000</span>) — written in code, not in a variable someone
+    changes later.</li>
+  <li><b>4 KB message cap</b> — the contract can't be bloated with oversized payloads.</li>
+</ul>
+<h3>In the launch (set by Pons, outside our control — that's the point)</h3>
+<ul>
+  <li><b>Liquidity locked</b> in Pons's locker — anti-rug by design: the creator can't pull
+    the pool either.</li>
+  <li><b>Anti-snipe window:</b> first blocks creator-only, then max 5% per wallet and 5.5%
+    per buy — no early whale dump.</li>
+  <li><b>No migration, ever.</b> The token always trades in its original pool.</li>
+</ul>
+<h3>Verify it yourself (2 minutes on the explorer)</h3>
+<ol>
+  <li>Open the contract on <a href="https://robinhoodchain.blockscout.com">robinhoodchain.blockscout.com</a>
+    → <b>Contract</b> → the verified source is readable.</li>
+  <li>Search: no <span class="k">mint</span>, no <span class="k">withdraw</span>, no
+    <span class="k">owner()</span>, no <span class="k">blacklist</span>.</li>
+  <li>Check the constants: <span class="k">FEE_BPS = 500</span>,
+    <span class="k">FORFEIT_BPS = 1000</span>.</li>
+  <li>Compare <span class="k">totalSupply()</span> with what this page says.</li>
+</ol>
+<h3>Said honestly</h3>
+<ul>
+  <li><b>Fee wallets are team-controlled</b> (the protocol's 5% and the 3% trade split) —
+    that money belongs to the project, not to holders, and every movement is traceable
+    on-chain.</li>
+  <li><b>No external audit yet.</b> The contracts are verified and covered by 114 automated
+    checks — until an external audit happens, the honest rule stands: keep amounts small.</li>
+  <li><b>Message keys belong to the user.</b> Neither the contract nor the team can read a
+    message — encryption happens in the user's browser.</li>
+</ul>
+
+<hr class="rule">
+
+<h2><span class="n">§</span>Links</h2>
+<ul>
+  <li>App: <a href="app.html">dashboard</a> · Landing: <a href="index.html">index</a></li>
+  <li>X: <a href="https://x.com/Talkwhitall">@Talkwhitall</a></li>
+  <li>TalkInbox contract: <span class="k">0x09CbF9B06881630b681eCca7Df7fD54A0D45F80a</span></li>
+  <li>Chain: Robinhood Chain (4663) · <a href="https://robinhoodchain.blockscout.com">explorer</a></li>
+  <li>Launching on Pons: <a href="https://ponsfamily.com">ponsfamily.com</a></li>
+</ul>
+
+<p class="foot">Not audited externally — keep amounts small. Nothing here is financial advice.
+The only reliable identity of the token is its contract address, published the day it launches.</p>
+
+</div>
+</body>
+</html>

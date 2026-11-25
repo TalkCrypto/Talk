@@ -9,6 +9,15 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<meta property="og:title" content="Talk — private messaging for wallets">
+<meta property="og:description" content="Encrypted messaging between wallets. A stranger pays $TALK to reach you — reply in 72h, keep 95%. No accounts, no backend. Live on Robinhood Chain.">
+<meta property="og:image" content="https://talkwhitall.com/og-image.png">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Talk — private messaging for wallets">
+<meta name="twitter:description" content="Encrypted messaging between wallets. A stranger pays $TALK to reach you — reply in 72h, keep 95%.">
+<meta name="twitter:image" content="https://talkwhitall.com/og-image.png">
 <link rel="stylesheet" href="landing.css">
 </head>
 <body>
@@ -18,6 +27,7 @@
     <a class="logo" href="index.html"><svg class="mark" viewBox="0 0 28 28" width="26" height="26" aria-hidden="true"><rect x="1.2" y="1.2" width="25.6" height="20.6" rx="6.2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8.6 21.8v4.4l5.8-4.4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M9.6 7.4h8.8M14 7.4v9.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><b>Talk</b><span>Messaging</span></a>
     <nav class="site-nav">
       <a href="#product">Product</a>
+      <a href="whitepaper.html">Whitepaper</a>
       <a href="#tokenomics">Token</a>
       <a href="#policy">Policy</a>
       <a href="#faq">FAQ</a>
@@ -170,7 +180,7 @@
         <article class="cell rv">
           <div class="n">01</div>
           <h3>Open in one signature</h3>
-          <p>No forms, no email, no password. Your wallet is the account, and activating it is free.</p>
+          <p>No forms, no email, no password. Your wallet is the account, and activating it takes one signature plus a small transaction.</p>
         </article>
         <article class="cell rv">
           <div class="n">02</div>
@@ -180,7 +190,7 @@
         <article class="cell rv">
           <div class="n">03</div>
           <h3>Answer, and it settles</h3>
-          <p>Reply and keep the payment. Stay silent and after 72 hours it goes back. You never hold their money.</p>
+          <p>Reply and keep the payment minus 5%. Stay silent and after 72 hours 90% of it goes back. You never hold their money.</p>
         </article>
         <article class="cell rv">
           <div class="n">04</div>
@@ -292,8 +302,8 @@
 
       <dl class="stats-table rv">
         <div class="stats-row"><dt>Max supply</dt><dd>1,000,000,000 <small>fixed at deploy</small></dd></div>
-        <div class="stats-row"><dt>Talk fee</dt><dd>5% <small>of what the recipient keeps</small></dd></div>
-        <div class="stats-row"><dt>Hold window</dt><dd>72 hours <small>then it returns to the sender</small></dd></div>
+        <div class="stats-row"><dt>Hold window</dt><dd>72 hours <small>then 90% returns to the sender</small></dd></div>
+        <div class="stats-row"><dt>Trade fee</dt><dd>3% <small>1% infrastructure · 1% dev & tooling · 1% multichain — fixed at launch</small></dd></div>
         <div class="stats-row"><dt>Accepted currency</dt><dd>$TALK <small>one token, nothing else</small></dd></div>
         <div class="stats-row"><dt>Withdraw function</dt><dd>None <small>the contract can't be drained</small></dd></div>
       </dl>
@@ -305,6 +315,12 @@
     <div class="band-in">
       <div class="tag rv"><b>04</b><span>Policy</span><hr></div>
       <h2 class="rv">What you get, in writing.</h2>
+      <p class="lede rv">
+        Our mission is one line: <b>connect the holders of the whole crypto universe — and give
+        communication its real value.</b> Every chain, every holder reachable, every fee public.
+        Fair launch on Pons: no presale, no team allocation, the creator buys at the same price
+        as everyone.
+      </p>
 
       <div class="policy-grid">
         <div class="pol rv">
@@ -336,7 +352,7 @@
       <div class="faq rv">
         <details>
           <summary>Do I need to deposit anything to open an inbox?</summary>
-          <p>No. Opening an inbox is a free signature, not a transaction. You only spend gas when you send or reply.</p>
+          <p>No deposit. Opening an inbox takes one signature and one small transaction (gas). You only pay real money when a stranger writes to you.</p>
         </details>
         <details>
           <summary>Who holds the money while it waits?</summary>
@@ -344,15 +360,23 @@
         </details>
         <details>
           <summary>What happens if I never answer?</summary>
-          <p>After 72 hours the sender can take it back, and anyone can trigger that refund. You don't have to be online, and we can't block it.</p>
+          <p>After 72 hours the sender gets 90% back and Talk keeps 10% — that's the filter. Anyone can trigger that refund. You don't have to be online, and we can't block it.</p>
         </details>
         <details>
           <summary>Can you read my messages?</summary>
           <p>No. They're sealed on your device with a key derived from your signature. What reaches the chain is bytes nobody can open without your wallet.</p>
         </details>
         <details>
-          <summary>Is the token live?</summary>
-          <p>Not yet. There is no sale, no presale and no published contract address. When that changes, it's announced here.</p>
+          <summary>What does Talk charge?</summary>
+          <p>Only two things. When a stranger pays to reach you, that payment is yours if you reply within 72h — the protocol keeps 5% of it at settlement. And every trade of $TALK pays 3% (the split above). Opening an inbox, writing to contacts and refunded messages cost nothing.</p>
+        </details>
+        <details>
+          <summary>Where do the trading fees go?</summary>
+          <p>3% of every trade, fixed at launch: 1% keeps the communication infrastructure running, 1% funds development and tooling, and 1% goes to the multichain expansion — Talk will be able to speak across networks. The split is public and on-chain.</p>
+        </details>
+        <details>
+          <summary>What's coming after launch?</summary>
+          <p>After December 12: Talk across any chain — not just Robinhood. One inbox, every network. Mobile apps (Android APK + iOS) and custom avatars are coming too — the web app already installs on your phone today.</p>
         </details>
       </div>
     </div>
@@ -363,10 +387,13 @@
     <div class="close-in">
       <div class="tag rv" style="justify-content:center"><b>06</b><span>Start</span></div>
       <h2 class="rv">Open your inbox in about ten seconds.</h2>
-      <p class="rv">One signature. No forms. Nothing to install.</p>
+      <p class="rv">Take your wallet and message anyone — that easy. From your favorite platform,
+      they'll receive it.</p>
+      <p class="rv">Our goal is simple: reach <b>everyone</b>, and expand communication across
+      the whole crypto universe. A world without communication is impossible — and crypto
+      without it is unfinished.</p>
       <div class="hero-ctas rv">
         <a class="btn btn-solid" href="app.html">Open Talk</a>
-        <a class="btn btn-ghost" href="deploy.html">Deploy your own</a>
       </div>
     </div>
   </section>
@@ -381,7 +408,7 @@
   </div>
 </footer>
 
-<script src="config.js"></script>
-<script src="landing.js"></script>
+<script src="config.js?v=10"></script>
+<script src="landing.js?v=10"></script>
 </body>
 </html>

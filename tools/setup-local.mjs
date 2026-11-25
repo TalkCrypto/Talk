@@ -5,7 +5,7 @@ import { webcrypto, createHash } from "node:crypto";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
-const nacl = require(path.join(process.env.TEMP, "nexus", "nacl.min.js"));
+const nacl = require(path.join(import.meta.dirname, "vendor", "nacl.min.js"));
 
 const RPC = "http://127.0.0.1:8546";
 const ROOT = "C:/Users/nonam/Desktop/PROYECTOS/Talk";

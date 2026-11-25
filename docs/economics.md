@@ -21,7 +21,7 @@ You set a price for talking to you. Someone decides whether that price is worth 
 Nothing else. No rules menu, no split options, no per-inbox configuration beyond the price.
 One price, two outcomes.
 
-## Why the 25% exists
+## Why the 10% exists
 
 Without it, a paid inbox is not defended: someone sends fifty messages, nobody answers, and
 after 72 hours every cent comes back. The price would be a deposit, not a toll. The 10% is what
