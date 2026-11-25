@@ -125,7 +125,7 @@ S = {
     "balanceOf": sel("balanceOf(address)"),
     "configure": sel("configure(bool,bytes32,uint256)"),
     "setPrice": sel("setPrice(uint256)"),
-    "send": sel("send(address,bytes)"),
+    "send": sel("send(address,uint256,bytes)"),
     "reply": sel("reply(uint256,bytes)"),
     "refund": sel("refund(uint256)"),
     "quote": sel("quote(address,address)"),
@@ -189,9 +189,11 @@ check(w(call(INBOX, S["quote"] + addr(A) + addr(B)), 0) == 0, "quote A->B == 0 (
 
 print("\n2. sending a paid message")
 b_before = bal(B)
-send(B, INBOX, S["send"] + addr(A) + u256(64) + bytes_arg(ct()))
+send(B, INBOX, S["send"] + addr(A) + u256(10 ** 40) + u256(96) + bytes_arg(ct()))
 check(bal(B) == b_before - 100 * UNIT, "B paid exactly 100 TALK")
 check(bal(INBOX) == 100 * UNIT, "the contract holds 100 on hold")
+expect_revert(lambda: send(B, INBOX, S["send"] + addr(A) + u256(1) + u256(96) + bytes_arg(ct())),
+              "a price above maxPrice reverts instead of overcharging")
 check(w(call(INBOX, S["nextId"]), 0) == 2, "nextId moved to 2")
 p1 = call(INBOX, S["payments"] + u256(1))
 check(w(p1, 4) == 1, "payment 1 is pending")
@@ -206,12 +208,12 @@ check(w(call(INBOX, S["isContact"] + addr(A) + addr(B)), 0) == 1, "A and B are n
 check(w(call(INBOX, S["quote"] + addr(B) + addr(A)), 0) == 0, "free for B after the reply")
 
 b_before = bal(B)
-send(B, INBOX, S["send"] + addr(A) + u256(64) + bytes_arg(ct()))
+send(B, INBOX, S["send"] + addr(A) + u256(10 ** 40) + u256(96) + bytes_arg(ct()))
 check(bal(B) == b_before, "a contact writes for free")
 check(w(call(INBOX, S["nextId"]), 0) == 2, "free messages don't create a payment")
 
 print("\n4. nobody replies: 90 / 10")
-send(C, INBOX, S["send"] + addr(A) + u256(64) + bytes_arg(ct()))
+send(C, INBOX, S["send"] + addr(A) + u256(10 ** 40) + u256(96) + bytes_arg(ct()))
 check(bal(INBOX) == 100 * UNIT, "C's payment is on hold")
 expect_revert(lambda: send(A, INBOX, S["refund"] + u256(2)), "refunding before expiry reverts")
 
@@ -228,13 +230,13 @@ check(C != A and w(call(INBOX, S["quote"] + addr(C) + addr(A)), 0) == 100 * UNIT
       "C is not a contact: still pays")
 
 print("\n5. expected failures")
-expect_revert(lambda: send(B, INBOX, S["send"] + addr(B) + u256(64) + bytes_arg(ct())), "messaging yourself reverts")
-expect_revert(lambda: send(B, INBOX, S["send"] + addr(C) + u256(64) + bytes_arg(ct())), "sending to a wallet with no inbox reverts")
-expect_revert(lambda: send(B, INBOX, S["send"] + addr(A) + u256(64) + bytes_arg(ct(5000))),
+expect_revert(lambda: send(B, INBOX, S["send"] + addr(B) + u256(10 ** 40) + u256(96) + bytes_arg(ct())), "messaging yourself reverts")
+expect_revert(lambda: send(B, INBOX, S["send"] + addr(C) + u256(10 ** 40) + u256(96) + bytes_arg(ct())), "sending to a wallet with no inbox reverts")
+expect_revert(lambda: send(B, INBOX, S["send"] + addr(A) + u256(10 ** 40) + u256(96) + bytes_arg(ct(5000))),
               "an oversized message reverts")
 
 print("\n5b. double reply, with the right recipient and a pending payment")
-send(C, INBOX, S["send"] + addr(A) + u256(64) + bytes_arg(ct()))   # C is not a contact: payment 3, pending
+send(C, INBOX, S["send"] + addr(A) + u256(10 ** 40) + u256(96) + bytes_arg(ct()))   # C is not a contact: payment 3, pending
 expect_revert(lambda: send(B, INBOX, S["reply"] + u256(3) + u256(64) + bytes_arg(ct())),
               "replying to someone else's payment reverts")
 a_before, t_before = bal(A), bal(TREASURY)

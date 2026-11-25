@@ -492,7 +492,7 @@ h2{
   .logo span{display:none}
 }
 
-/* contactos que todavía no tienen nombre: se muestran como dirección */
+/* contacts without a name yet: shown as an address */
 .addr-name{font-family:var(--mono);font-size:11.5px !important;font-weight:500 !important;letter-spacing:.01em}
 /* puntos de fondo: se apagan hacia los bordes para no competir con el texto */
 body::before{

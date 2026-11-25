@@ -35,7 +35,8 @@
     <button class="icon-btn" id="btnInbox" aria-label="Your inbox" title="Your inbox">
       <svg viewBox="0 0 24 24" width="15" height="15"><path fill="currentColor" d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0 2c-4.4 0-8 2.2-8 5v1h16v-1c0-2.8-3.6-5-8-5z"/></svg>
     </button>
-    <span class="chip" id="addr">not connected</span>
+    <span class="chip" id="holdChip" hidden></span>
+      <span class="chip" id="addr">not connected</span>
     <button id="btnConnect" class="solid sm">Connect</button>
   </div>
 </header>
@@ -66,7 +67,8 @@
       <div class="chats" id="convs"></div>
 
       <div class="side-foot">
-        <input id="newTo" placeholder="New chat — paste an address" autocomplete="off" spellcheck="false">
+        <div class="side-stats" id="sideStats"></div>
+      <input id="newTo" placeholder="New chat — paste an address" autocomplete="off" spellcheck="false">
       </div>
     </aside>
 
@@ -276,7 +278,7 @@
   } catch (_) {}
 })();
 </script>
-<script src="config.js?v=10"></script>
-<script src="app.js?v=10"></script>
+<script src="config.js?v=14"></script>
+<script src="app.js?v=14"></script>
 </body>
 </html>

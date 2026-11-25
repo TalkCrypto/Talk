@@ -22,21 +22,21 @@ function fmt(x) { return "<span class='" + (x.ok ? "ok" : "bad") + "'>" + x.txt 
 async function run() {
   const out = [];
   const hasEth = !!window.ethereum;
-  out.push(fmt({ ok: hasEth, txt: "1. wallet detectada: " + (hasEth ? (window.ethereum.isMetaMask ? "MetaMask" : window.ethereum.isCoinbase ? "Coinbase" : window.ethereum.isTrust ? "Trust" : window.ethereum.isRabby ? "Rabby" : "otra") : "NO — no hay wallet en este navegador") }));
+  out.push(fmt({ ok: hasEth, txt: "1. wallet detected: " + (hasEth ? (window.ethereum.isMetaMask ? "MetaMask" : window.ethereum.isCoinbase ? "Coinbase" : window.ethereum.isTrust ? "Trust" : window.ethereum.isRabby ? "Rabby" : "other") : "NONE — no wallet in this browser") }));
   if (!hasEth) { document.getElementById("report").innerHTML = out.join("<br>"); return; }
 
   let cid = null;
-  try { cid = await ethereum.request({ method: "eth_chainId" }); out.push(fmt({ ok: cid === "0x1237", txt: "2. cadena actual de la wallet: " + cid + (cid === "0x1237" ? " (Robinhood Chain ✓)" : " ← NO es Robinhood (4663). Esta es la causa del error: cambiá de red adentro de la wallet") })); }
-  catch (e) { out.push(fmt({ ok: false, txt: "2. eth_chainId falló: " + e.message })); }
+  try { cid = await ethereum.request({ method: "eth_chainId" }); out.push(fmt({ ok: cid === "0x1237", txt: "2. wallet chain: " + cid + (cid === "0x1237" ? " (Robinhood Chain ✓)" : " — NOT Robinhood (4663). This is the cause: switch network inside the wallet") })); }
+  catch (e) { out.push(fmt({ ok: false, txt: "2. eth_chainId failed: " + e.message })); }
 
-  try { const acc = await ethereum.request({ method: "eth_accounts" }); out.push(fmt({ ok: acc && acc.length > 0, txt: "3. cuentas visibles: " + (acc && acc.length ? acc[0] : "ninguna — la wallet está bloqueada o no autorizada") })); }
-  catch (e) { out.push(fmt({ ok: false, txt: "3. eth_accounts falló: " + e.message })); }
+  try { const acc = await ethereum.request({ method: "eth_accounts" }); out.push(fmt({ ok: acc && acc.length > 0, txt: "3. visible accounts: " + (acc && acc.length ? acc[0] : "none — the wallet is locked or not authorised") })); }
+  catch (e) { out.push(fmt({ ok: false, txt: "3. eth_accounts failed: " + e.message })); }
 
-  try { await ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: "0x1237" }] }); out.push(fmt({ ok: true, txt: "4. switch a Robinhood Chain: OK" })); }
+  try { await ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: "0x1237" }] }); out.push(fmt({ ok: true, txt: "4. switch to Robinhood Chain: OK" })); }
   catch (e) {
-    out.push(fmt({ ok: false, txt: "4. switch falló: código " + e.code + " — '" + (e.message || "") + "'" }));
-    try { await ethereum.request({ method: "wallet_addEthereumChain", params: [{ chainId: "0x1237", chainName: "Robinhood Chain", nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 }, rpcUrls: ["https://rpc.mainnet.chain.robinhood.com"], blockExplorerUrls: ["https://robinhoodchain.blockscout.com"] }] }); out.push(fmt({ ok: true, txt: "5. wallet_addEthereumChain: OK — la red quedó agregada. Volvé a la app y conectá." })); }
-    catch (e2) { out.push(fmt({ ok: false, txt: "5. add falló: código " + e2.code + " — '" + (e2.message || "") + "'" })); }
+    out.push(fmt({ ok: false, txt: "4. switch failed: code " + e.code + " — '" + (e.message || "") + "'" }));
+    try { await ethereum.request({ method: "wallet_addEthereumChain", params: [{ chainId: "0x1237", chainName: "Robinhood Chain", nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 }, rpcUrls: ["https://rpc.mainnet.chain.robinhood.com"], blockExplorerUrls: ["https://robinhoodchain.blockscout.com"] }] }); out.push(fmt({ ok: true, txt: "5. wallet_addEthereumChain: OK — network added. Go back to the app and connect." })); }
+    catch (e2) { out.push(fmt({ ok: false, txt: "5. add failed: code " + e2.code + " — '" + (e2.message || "") + "'" })); }
   }
   document.getElementById("report").innerHTML = out.join("<br>");
 }

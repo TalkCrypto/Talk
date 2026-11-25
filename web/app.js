@@ -33,7 +33,7 @@ const UNIT = 10n ** BigInt(DECIMALS);
 /* keccak-256 selectors (constants from the Talk ABI) */
 const SEL = {
   inboxes: "0x5cdd067d", payments: "0x87d81789", quote: "0x4a5aa711",
-  isContact: "0x77e600fd", send: "0xc89acc86", reply: "0xb21faa4a",
+  isContact: "0x77e600fd", send: "0xc89acc86", sendV2: "0x9bd9bbc6", reply: "0xb21faa4a",
   refund: "0x278ecde1", configure: "0xb717a262", setPrice: "0x91b7f5ed",
   isExpired: "0xd9548e53", ttl: "0x1575f63e", feeBps: "0xbf333f2c"
 };
@@ -41,7 +41,7 @@ const ERC20 = { allowance: "0xdd62ed3e", approve: "0x095ea7b3", balanceOf: "0x70
 const TOPIC_MSG = "0x2096cd4806a6f9634720b2b28d359d46b7292c895b42c68040ffdc1a016268bf";
 const TOPIC_SETTLED = "0x321f57f44af402708b8b3bad0bd10012cd568d8696946e26edeb86178bb7c27e";
 
-/* la firma liga las claves al dominio: un phishing en otro dominio deriva claves distintas e inútiles */
+/* the signature binds the keys to this origin: a phishing page on another domain derives different, useless keys */
 const SIG_MSG = "Talk\n\n" +
   "Sign to unlock your encrypted inbox.\n" +
   "This is free: it is not a transaction and costs no gas.\n\n" +
@@ -132,7 +132,7 @@ const S = {
   account: null, keyPair: null, me: null, peers: new Map(), contacts: new Set(),
   convs: [], active: null, msgs: [], all: [], payments: new Map(),
   ttl: 0, feeBps: 0, balance: 0n, price: 0n,
-  stats: { total: 0, sent: 0, received: 0, escrowIn: 0n, escrowOut: 0n, earned: 0n, contacts: 0 }
+  keys: [], stats: { total: 0, sent: 0, received: 0, escrowIn: 0n, escrowOut: 0n, earned: 0n, contacts: 0 }
 };
 
 const $ = id => document.getElementById(id);
@@ -143,7 +143,7 @@ const els = {};
  "wzBack","wzNext","convs","msgs","threadTitle","threadMeta","peerAv","composer","text","priceTag",
  "btnSend","threadActions","composerHint","log",
  "meAv","meName","meSub","btnInbox","btnInbox2","btnCloseInbox","inboxModal","search","newTo","footMeta","socials",
- "btnRename","renameRow","renameInput","renameSave","renameClear"]
+ "sideStats","holdChip","btnRename","renameRow","renameInput","renameSave","renameClear"]
   .forEach(k => els[k] = $(k));
 
 function log(msg, kind = "") {
@@ -261,20 +261,44 @@ function decodeMsg(l) {
 }
 
 /* ------------------------------- crypto --------------------------------- */
-/* claves v2: el id nuevo invalida cachés derivadas con la versión anterior */
-const keyId = a => "talk:enc2:" + a.toLowerCase();
+/* Keys are kept as a history, newest first. Re-signing can produce a different key, and a paid
+   message must never become unreadable because of that: decryption tries every key we have. */
+const keyId = a => "talk:keys:" + String(a).toLowerCase();
+const legacyKeyId = a => "talk:enc2:" + String(a).toLowerCase();
+
+function keyHistory(account) {
+  try {
+    const raw = JSON.parse(localStorage.getItem(keyId(account)) || "[]");
+    if (Array.isArray(raw)) return raw.filter(k => typeof k === "string" && /^[0-9a-f]{64}$/i.test(k));
+  } catch (_) {}
+  return [];
+}
+function addKey(account, hexSecret) {
+  const h = keyHistory(account).filter(k => k !== hexSecret);
+  h.unshift(hexSecret);
+  localStorage.setItem(keyId(account), JSON.stringify(h.slice(0, 6)));
+}
+function hydrateKeys(account) {
+  // migrate the single-key store from earlier builds
+  const legacy = localStorage.getItem(legacyKeyId(account));
+  if (legacy && /^[0-9a-f]{64}$/i.test(legacy) && !keyHistory(account).includes(legacy)) addKey(account, legacy);
+
+  S.keys = keyHistory(account).map(k => {
+    try { return nacl.box.keyPair.fromSecretKey(hexToBytes(k)); } catch (_) { return null; }
+  }).filter(Boolean);
+  return S.keys[0] || null;
+}
 
 async function deriveKeys(account) {
   const sig = await ethereum.request({ method: "personal_sign", params: [utf8Hex(SIG_MSG), account] });
   const seed = await sha256(hexToBytes(sig));
   const kp = nacl.box.keyPair.fromSecretKey(seed);
-  localStorage.setItem(keyId(account), bytesToHex(kp.secretKey));
+  addKey(account, bytesToHex(kp.secretKey));
+  hydrateKeys(account);
   return kp;
 }
 function loadKeys(account) {
-  const raw = localStorage.getItem(keyId(account));
-  if (!raw) return null;
-  try { return nacl.box.keyPair.fromSecretKey(hexToBytes(raw)); } catch (_) { return null; }
+  return hydrateKeys(account);
 }
 function seal(peerKey, text) {
   const nonce = nacl.randomBytes(24);
@@ -287,16 +311,21 @@ function seal(peerKey, text) {
   return bytesToHex(out);
 }
 function unseal(ct, peerKey) {
-  try {
-    const b = hexToBytes(ct);
-    if (b[0] !== 1 || !S.keyPair) return null;
-    const sender = b.slice(1, 33), nonce = b.slice(33, 57), box = b.slice(57);
-    const mine = bytesToHex(sender) === bytesToHex(S.keyPair.publicKey);
+  let b;
+  try { b = hexToBytes(ct); } catch (_) { return null; }
+  if (!b || b[0] !== 1 || b.length < 58) return null;
+
+  const sender = b.slice(1, 33), nonce = b.slice(33, 57), box = b.slice(57);
+  const keys = (S.keys && S.keys.length) ? S.keys : (S.keyPair ? [S.keyPair] : []);
+
+  for (const kp of keys) {
+    const mine = bytesToHex(sender) === bytesToHex(kp.publicKey);
     const peer = mine ? (peerKey ? hexToBytes(peerKey) : null) : sender;
-    if (!peer) return null;
-    const pt = nacl.box.open(box, nonce, peer, S.keyPair.secretKey);
-    return pt ? new TextDecoder().decode(pt) : null;
-  } catch (_) { return null; }
+    if (!peer) continue;
+    const pt = nacl.box.open(box, nonce, peer, kp.secretKey);
+    if (pt) return new TextDecoder().decode(pt);
+  }
+  return null;
 }
 const myPub = () => bytesToHex(S.keyPair.publicKey);
 
@@ -568,7 +597,7 @@ function renderBox() {
   }
 }
 
-/* ---- alias local por contacto: unos con nombre, otros con dirección ---- */
+/* ---- local alias per contact: some have a name, others show the address ---- */
 const aliasKey = a => "talk:alias:" + String(a).toLowerCase();
 
 function aliasOf(a) {
@@ -599,7 +628,7 @@ function renderConvs() {
     const on = S.active && S.active.toLowerCase() === c.address ? " on" : "";
     const pv = c.preview ? esc(c.preview.slice(0, 60)) : "Encrypted message";
 
-    // no leídos estilo WhatsApp: mensajes con id mayor al último visto
+    // unread, WhatsApp style: messages with an id above the last one seen
     let unread = 0;
     try {
       const seen = Number(localStorage.getItem("talk:seen:" + c.address) || 0);
@@ -633,7 +662,7 @@ function renderConvs() {
   els.convs.querySelectorAll(".chat-row").forEach(el => el.onclick = () => openThread(el.dataset.a));
 }
 
-/* ---- sin horas: los mensajes no llevan estampas de tiempo (cero problemas de zonas horarias) ---- */
+/* ---- no timestamps: messages carry none, so there are no time-zone problems ---- */
 function ttlTxt(p) {
   const s = p.expiresAt - Math.floor(Date.now() / 1000);
   if (s <= 0) return "expired";
@@ -641,6 +670,28 @@ function ttlTxt(p) {
   return h ? h + "h " + m + "m" : m + "m";
 }
 
+
+/* The countdown lives in the header, next to the account: a per-bubble clock made every message
+   taller and wrapped badly. The thread says "on hold"; the clock sits once, at the top. */
+function renderHoldChip() {
+  if (!els.holdChip) return;
+  const now = Math.floor(Date.now() / 1000);
+  let soonest = null;
+  try {
+    for (const p of S.payments.values()) {
+      if (p.status !== 1 || p.from.toLowerCase() !== (S.account || "").toLowerCase()) continue;
+      if (p.expiresAt <= now) continue;
+      if (soonest === null || p.expiresAt < soonest) soonest = p.expiresAt;
+    }
+  } catch (_) {}
+
+  if (soonest === null) { els.holdChip.hidden = true; els.holdChip.textContent = ""; return; }
+  const s = soonest - now;
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
+  els.holdChip.hidden = false;
+  els.holdChip.textContent = "hold " + (h ? h + "h " + m + "m" : m + "m");
+  els.holdChip.title = "Time left for them to reply. After that the payment comes back to you.";
+}
 function renderThread() {
   if (!els.msgs) return;
 
@@ -693,17 +744,18 @@ function renderThread() {
 
         const body = txt !== null
           ? `<div class="bubble">${esc(txt)}</div>`
-          : `<div class="bubble locked">locked · ${strip0x(m.ct).length / 2} B</div>`;
+          : `<div class="bubble locked" title="Encrypted with a key this browser no longer has. New messages will not end up here.">not readable · older key</div>`;
 
         let chip = "";
         const p = S.payments.get(m.paymentId);
         if (p) {
           const cls = p.status === 1 ? "pending" : p.status === 2 ? "settled" : "refunded";
-          chip = `<span class="paychip ${cls}">${fmt(p.amount)} · ${p.status === 1 ? ttlTxt(p) + " left" : STATUS_LABEL[p.status]}</span>`;
+          chip = `<span class="paychip ${cls}">${fmt(p.amount)} · ${p.status === 1 ? "on hold" : STATUS_LABEL[p.status]}</span>`;
           if (p.status === 2) chip += `<div class="sysline">✓ ${fmt(p.amount)} collected · you are now contacts</div>`;
         }
         return body + chip;
       }).join("");
+  renderHoldChip();
 
       const av = g.out ? "" : `<div class="av">${S.active.slice(2, 4).toUpperCase()}</div>`;
       html += `<div class="grp ${g.out ? "out" : "in"}">${av}<div class="stack">${bubbles}</div></div>`;
@@ -860,7 +912,7 @@ async function refresh() {
   renderStats();
   renderConvs();
   if (S.active) await openThread(S.active);
-  log(S.all.length + " messages · " + S.convs.length + " conversations", "ok");
+  if (els.sideStats) els.sideStats.textContent = S.all.length + (S.all.length === 1 ? " message" : " messages") + " · " + S.convs.length + (S.convs.length === 1 ? " conversation" : " conversations");
 }
 
 async function openThread(addr) {
@@ -927,7 +979,10 @@ async function doSend(paymentId) {
       }
     }
 
-    const data = SEL.send + asAddr(peer) + u256(2 * 32) + dynBytes(ct);
+    // v1: send(address,bytes).  v2 adds maxPrice so the recipient cannot raise the price mid-flight.
+        const data = CFG.inboxAbi === 2
+          ? SEL.sendV2 + asAddr(peer) + u256(price + (price / 100n)) + u256(3 * 32) + dynBytes(ct)
+          : SEL.send + asAddr(peer) + u256(2 * 32) + dynBytes(ct);
     if (await runTx(price > 0n ? "Sending · " + fmt(price) + " on hold" : "Sending",
         () => ({ to: CFG.inbox, data }))) {
       els.text.value = "";
@@ -1073,9 +1128,9 @@ async function connect() {
     }
 
     if (els.btnConnect) {
-      els.btnConnect.textContent = "Re-firmar";
+      els.btnConnect.textContent = "Re-sign";
       els.btnConnect.onclick = async () => {
-        try { S.keyPair = await deriveKeys(S.account); log("Key regenerated ✔", "ok"); await refresh(); }
+        try { S.keyPair = await deriveKeys(S.account); log("Key refreshed", "ok"); await refresh(); }
         catch (e) { log("Cancelled.", "err"); }
       };
     }
@@ -1098,6 +1153,7 @@ async function connect() {
 setInterval(() => {
   if (S.account && !S.demo && !els.text?.value) refresh().catch(() => {});
 }, 15000);
+setInterval(renderHoldChip, 20000);
 
 function initConfigPanel() {
   if (!els.btnCfg) return;
@@ -1210,6 +1266,34 @@ function initShell() {
 }
 
 function init() {
+  // Always start with a clean status line: a stale message from a cached page must never
+  // look like a live error.
+  if (els.log) { els.log.textContent = ""; els.log.className = ""; }
+
+  // Say out loud what this build is and which network it targets, so a stale bundle in the
+  // browser becomes obvious instead of mysterious.
+  console.log("[Talk] build", "2026-11-25 · chain", CFG.chain?.id, "· inbox", CFG.inbox || "-", "· token", CFG.token || "-");
+
+  // Some wallet extensions inject a broken provider and then throw on every call. Probe once,
+  // quietly, and if it fails say what it is and what to do — never echo a third-party error raw.
+  if (window.ethereum) {
+    Promise.resolve()
+      .then(() => window.ethereum.request({ method: "eth_chainId" }))
+      .catch(() => {
+        const names = [];
+        try {
+          if (window.ethereum.isMetaMask) names.push("MetaMask");
+          if (window.ethereum.isWombat) names.push("Wombat");
+          (window.ethereum.providers || []).forEach(p => {
+            if (p.isMetaMask) names.push("MetaMask");
+            if (p.isWombat) names.push("Wombat");
+          });
+        } catch (_) {}
+        log("A wallet extension in this browser failed to start" + (names.length ? " (" + [...new Set(names)].join(", ") + ")" : "") +
+            ". Disable the extra wallet extensions, keep MetaMask, then reload.", "err");
+      });
+  }
+
   renderSocials();
   renderHeader();
   renderStats();

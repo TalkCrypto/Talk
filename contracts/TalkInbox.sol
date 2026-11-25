@@ -81,6 +81,7 @@ contract TalkInbox {
     error BadPrice();
     error TooLong();
     error WrongPayment();
+    error PriceAboveLimit(uint256 price, uint256 maxPrice);
     error TransferFailed();
     error Reentrancy();
 
@@ -113,15 +114,17 @@ contract TalkInbox {
     /* -------------------------------------------------------------------- send */
 
     /**
-     * @notice Send an encrypted message to `to`. Charges whatever `quote` says.
+     * @notice Send an encrypted message to `to`. `maxPrice` is the most the sender is willing
+     *         to pay: if the recipient raised their price, the call reverts instead of overcharging.
      * @return paymentId 0 when the message was free, otherwise the id of the held payment.
      */
-    function send(address to, bytes calldata ciphertext) external nonReentrant returns (uint256 paymentId) {
+    function send(address to, uint256 maxPrice, bytes calldata ciphertext) external nonReentrant returns (uint256 paymentId) {
         if (to == msg.sender) revert SelfMessage();
         if (ciphertext.length > MAX_CIPHERTEXT) revert TooLong();
         if (!inboxes[to].registered) revert NotRegistered();
 
         uint256 price = quote(msg.sender, to);
+        if (price > maxPrice) revert PriceAboveLimit(price, maxPrice);
 
         if (price == 0) {
             emit Message(++messageCount, msg.sender, to, 0, ciphertext);

@@ -615,7 +615,7 @@ main.shell .banner{margin:0 0 2px}
   .side{display:flex;border-right:none;border-bottom:1px solid var(--line)}
   .chat{height:72vh}
 }
-/* los mensajes se pegan abajo, como en cualquier chat */
+/* messages sit at the bottom, like any chat */
 .msgs > :first-child{margin-top:auto}
 #log{
   position:fixed;left:50%;bottom:92px;transform:translateX(-50%);z-index:70;
@@ -853,7 +853,7 @@ body.landing-body main{max-width:none;padding:0}
 header.topbar .site-nav a{font-size:12px}
 header.topbar .site-nav a.on{color:#fff;border-bottom:1px solid #fff}
 header.topbar .brand{font-family:var(--mono);font-weight:600;font-size:13px;letter-spacing:2.2px}
-/* renombrar contacto */
+/* rename contact */
 .rename-row{
   display:flex;gap:8px;align-items:center;padding:10px 16px;
   border-bottom:1px solid var(--line);background:#0d0d0f;
@@ -866,3 +866,10 @@ header.topbar .brand{font-family:var(--mono);font-weight:600;font-size:13px;lett
 .rename-row button{flex:0 0 auto}
 /* settle: línea verde del momento en que el escrow se liquida */
 .sysline{display:inline-block;margin-top:6px;padding:4px 12px;border-radius:999px;background:rgba(0,200,120,.12);border:1px solid rgba(0,200,120,.45);color:#35d49a;font-size:12.5px}
+
+/* the thread reads from the bottom, like any chat */
+.msgs{justify-content:flex-end;padding-bottom:6px}
+
+#holdChip{font-family:var(--mono);font-size:11px;color:var(--accent);border-color:rgba(126,240,168,.35)}
+
+.side-stats{padding:10px 14px;border-top:1px solid var(--line);font-family:var(--mono);font-size:10.5px;color:var(--faint);letter-spacing:.02em}

@@ -75,14 +75,30 @@ alias = {
     "isExpired": "isExpired", "ttl": "TTL", "feeBps": "FEE_BPS",
 }  # nombres del mapa -> nombres de la ABI
 mismatch = []
+# la app puede hablar con dos versiones del inbox: la desplegada (send sin maxPrice) y la nueva.
+# Cada selector tiene que coincidir con UNA de las dos firmas reales, nunca con cualquiera.
+extra = {
+    "send": ["send(address,uint256,bytes)", "send(address,bytes)"],
+    "sendV2": ["send(address,uint256,bytes)"],
+}
 for key, sel_hex in used.items():
     abi_name = alias.get(key, key)
-    if abi_name not in sigs:
-        mismatch.append(f"{key}: no existe en la ABI")
-        continue
-    sig, expected = sigs[abi_name]
-    if sel_hex != expected:
-        mismatch.append(f"{key}: {sel_hex} != {expected} ({sig})")
+    candidates = extra.get(key, [])
+    ok = False
+    expected_txt = "?"
+    if abi_name in sigs:
+        sig, expected = sigs[abi_name]
+        expected_txt = expected
+        if sel_hex == expected:
+            ok = True
+    for sig_text in candidates:
+        if sel_hex == "0x" + keccak256(sig_text.encode()).hex()[:8]:
+            ok = True
+    if not ok:
+        if abi_name not in sigs and not candidates:
+            mismatch.append(f"{key}: no existe en la ABI")
+        else:
+            mismatch.append(f"{key}: {sel_hex} != {expected_txt}")
 check(not mismatch, "every app.js selector matches keccak(ABI)",
       "; ".join(mismatch) if mismatch else f"{len(used)} selectores")
 

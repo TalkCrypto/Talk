@@ -119,7 +119,7 @@ def art(name):
 
 S = {
     "transfer": sel("transfer(address,uint256)"), "approve": sel("approve(address,uint256)"),
-    "configure": sel("configure(bool,bytes32,uint256)"), "send": sel("send(address,bytes)"),
+    "configure": sel("configure(bool,bytes32,uint256)"), "send": sel("send(address,uint256,bytes)"),
     "reply": sel("reply(uint256,bytes)"), "nextId": sel("nextId()"),
 }
 TOPIC_MSG = topic("Message(uint256,address,address,uint256,bytes)")
@@ -149,7 +149,7 @@ print("\n1. sending")
 ids = []
 for i, msg in enumerate(["first", "second", "third"]):
     ct = "0x01" + KEY + "22" * 24 + msg.encode().hex().ljust(64, "0")
-    tx(B, INBOX, S["send"] + addr(A) + u256(64) + bytes_arg(ct))
+    tx(B, INBOX, S["send"] + addr(A) + u256(10 ** 40) + u256(96) + bytes_arg(ct))
     ids.append(i + 1)
 
 # a reply from A to B, which is also a Message event

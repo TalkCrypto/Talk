@@ -77,17 +77,23 @@ contract TalkToken {
     function permit(address owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external {
         if (block.timestamp > deadline) revert Expired();
 
+        // reject the malleable half of the curve, so one signature cannot become two
+        if (uint256(s) > 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0) revert BadSignature();
+
+        uint256 nonce = nonces[owner];
         bytes32 digest = keccak256(
             abi.encodePacked(
                 "\x19\x01",
                 DOMAIN_SEPARATOR,
-                keccak256(abi.encode(PERMIT_TYPEHASH, owner, spender, value, nonces[owner]++, deadline))
+                keccak256(abi.encode(PERMIT_TYPEHASH, owner, spender, value, nonce, deadline))
             )
         );
 
         address signer = ecrecover(digest, v, r, s);
         if (signer == address(0) || signer != owner) revert BadSignature();
 
+        // only now the nonce is spent: a forged signature can no longer burn it
+        nonces[owner] = nonce + 1;
         allowance[owner][spender] = value;
         emit Approval(owner, spender, value);
     }
